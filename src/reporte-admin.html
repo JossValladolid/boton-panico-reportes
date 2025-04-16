@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Enviar Formulario como JSON</title>
+  </head>
+  <body>
+    <form id="myForm">
+      <button type="submit">Recibir JSON</button>
+    </form>
+
+    <div id="results">
+
+    </div>
+
+    <script>
+      const form = document.getElementById("myForm");
+
+      form.addEventListener("submit", function (event) {
+        event.preventDefault(); // Evita el envío tradicional del formulario
+
+        // 4. Enviar la petición HTTP usando fetch
+        fetch("http://localhost:8000/tasks/", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json", // Aunque para GET no es estrictamente necesario
+          },
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Tareas recibidas:", data);
+            // Aquí puedes manipular los datos para mostrarlos en tu HTML
+            const results = document.getElementById('results');
+            results.innerText = JSON.stringify(data);
+          })
+          .catch((error) => {
+            console.error("Error al obtener las tareas:", error);
+          });
+      });
+    </script>
+  </body>
+</html>
