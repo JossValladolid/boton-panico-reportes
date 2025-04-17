@@ -1,46 +1,71 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Enviar Formulario como JSON</title>
-  </head>
-  <body>
-    <form id="myForm">
-      <button type="submit">Recibir JSON</button>
-    </form>
+<head>
+  <title>Mostrar JSON en Tabla Automáticamente</title>
+</head>
+<body>
+  <form id="myForm">
+    <button type="submit">Recibir JSON</button>
+  </form>
 
-    <div id="results">
-
+  <div id="tabla-contenedor">
     </div>
 
-    <script>
-      const form = document.getElementById("myForm");
+  <script>
+    function mostrarJSONEnTabla(jsonData) {
+      const tablaContenedor = document.getElementById('tabla-contenedor');
+      const tabla = document.createElement('table');
 
-      form.addEventListener("submit", function (event) {
-        event.preventDefault(); // Evita el envío tradicional del formulario
+      if (jsonData && jsonData.length > 0) {
+        const thead = document.createElement('thead');
+        const encabezadoFila = document.createElement('tr');
+        const columnas = Object.keys(jsonData[0]);
 
-        // 4. Enviar la petición HTTP usando fetch
-        fetch("http://localhost:8000/tasks/", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json", // Aunque para GET no es estrictamente necesario
-          },
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-          })
-          .then((data) => {
-            console.log("Tareas recibidas:", data);
-            // Aquí puedes manipular los datos para mostrarlos en tu HTML
-            const results = document.getElementById('results');
-            results.innerText = JSON.stringify(data);
-          })
-          .catch((error) => {
-            console.error("Error al obtener las tareas:", error);
+        columnas.forEach(columna => {
+          const th = document.createElement('th');
+          th.textContent = columna.toUpperCase();
+          encabezadoFila.appendChild(th);
+        });
+        thead.appendChild(encabezadoFila);
+        tabla.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        jsonData.forEach(filaData => {
+          const fila = document.createElement('tr');
+          columnas.forEach(columna => {
+            const celda = document.createElement('td');
+            celda.textContent = filaData[columna];
+            fila.appendChild(celda);
           });
+          tbody.appendChild(fila);
+        });
+        tabla.appendChild(tbody);
+
+        tablaContenedor.innerHTML = ''; // Limpiar cualquier contenido anterior
+        tablaContenedor.appendChild(tabla);
+      } else {
+        tablaContenedor.textContent = 'No hay datos para mostrar.';
+      }
+    }
+
+    // Realizar la petición fetch al cargar la página
+    fetch("http://localhost:8000/tasks/")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        console.log("Tareas recibidas:", data);
+        mostrarJSONEnTabla(data); // Llamar a la función para mostrar los datos en la tabla
+      })
+      .catch((error) => {
+        console.error("Error al obtener las tareas:", error);
+        const tablaContenedor = document.getElementById('tabla-contenedor');
+        tablaContenedor.textContent = 'Error al cargar los datos.';
       });
-    </script>
-  </body>
+  </script>
+
+</body>
 </html>
