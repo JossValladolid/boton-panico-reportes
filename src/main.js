@@ -1,6 +1,20 @@
-function mostrarJSONEnTabla(jsonData) {
-    const tablaContenedor = document.getElementById('tabla-contenedor');
-    const tabla = document.createElement('table');
+document.addEventListener('DOMContentLoaded', function() {
+  // Elementos del DOM
+  const sidebar = document.querySelector('.sidebar');
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  const mainContent = document.querySelector('.main-content');
+  const searchInput = document.getElementById('search-input');
+  const searchButton = document.getElementById('search-button');
+
+  // Toggle sidebar
+  sidebarToggle.addEventListener('click', function() {
+      sidebar.classList.toggle('collapsed');
+      mainContent.classList.toggle('expanded');
+  });
+
+  function mostrarJSONEnTabla(jsonData) {
+    const tablaContenedor = document.getElementById('reportes-table');
+    const tabla = document.createElement('tabla-reportes');
     if (jsonData && jsonData.length > 0) {
       const thead = document.createElement('thead');
       const encabezadoFila = document.createElement('tr');
@@ -28,8 +42,9 @@ function mostrarJSONEnTabla(jsonData) {
     } else {
       tablaContenedor.textContent = 'No hay datos para mostrar.';
     }
-}
-function obtenerTareasYActualizarTabla() {
+  }
+
+  function cargarTabla() {
     fetch("http://localhost:8000/tasks/")
     .then((response) => {
         if (!response.ok) {
@@ -39,12 +54,24 @@ function obtenerTareasYActualizarTabla() {
     })
     .then((data) => {
         console.log("Tareas actualizadas:", data);
+        document.getElementById('errorFetch').textContent = '';
         mostrarJSONEnTabla(data);
     })
     .catch((error) => {
-        console.error("Error al obtener las tareas:", error);
-        document.getElementById('tabla-contenedor').textContent = 'Error al cargar los datos.';
-    });
-}
-obtenerTareasYActualizarTabla();
-setInterval(obtenerTareasYActualizarTabla, 3000);
+      console.error("Error al obtener las tareas:", error);
+  
+      const errorElement = document.getElementById('errorFetch');
+      errorElement.textContent = 'Error al cargar los datos';
+      errorElement.classList.add('blink');
+  
+      // Elimina la tabla
+      const tablaContenedor = document.getElementById('reportes-table');
+      tablaContenedor.innerHTML = '';
+  });
+  }
+  
+  cargarTabla();
+  setInterval(cargarTabla, 3000);
+});
+
+////////////////////////////////////////////////////////////////////////////////////
