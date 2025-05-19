@@ -9,20 +9,24 @@
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>ISAA</h2>
+        <!-- Header principal -->
+        <header class="main-header">
+            <div class="header-left">
                 <button id="sidebar-toggle" class="sidebar-toggle">
                     <i class="fas fa-bars"></i>
                 </button>
+                <h2>ISAA</h2>
             </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
             <nav class="sidebar-nav">
                 <ul>
                     <li class="active">
                         <a href="index.html">
                             <i class="fas fa-tachometer-alt"></i>
-                            <span>Dashboard</span>
+                            <span>Inicio</span>
                         </a>
                     </li>
                     <li>
@@ -55,26 +59,20 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <header class="main-header">
-                <div class="welcome-message">
-                    <h1>¡Bienvenido, administrador!</h1>
-                </div>
-                <div class="search-container">
-                    <input type="text" id="search-input" placeholder="Buscar por código...">
-                    <button id="search-button"><i class="fas fa-search"></i> Buscar</button>
-                </div>
-            </header>
-
             <section class="dashboard">
                 <div class="dashboard-header">
                     <h2>Panel de Reportes</h2>
                     <div class="actions">
-                        <button class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Nuevo Reporte
-                        </button>
-                        <button class="btn btn-secondary">
-                            <i class="fas fa-file-export"></i> Exportar
-                        </button>
+                        <div class="search-container">
+                            <input type="text" id="search-input" placeholder="Codigos de busqueda...">
+                            <button id="refresh-button" class="btn btn-secondary">
+                                <i class="fas fa-sync"></i> Refrescar
+                            </button>
+                            <button id="mostrar-todos-btn">Mostrar todos</button>
+                            <button class="btn btn-secondary" id="exportar-button">
+                                <i class="fas fa-file-export"></i> Exportar
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -92,5 +90,6 @@
     </div>
 
     <script src="main.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
 </html>
