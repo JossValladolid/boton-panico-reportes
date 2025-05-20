@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
       sidebar.classList.remove('collapsed');
       sidebar.style.transform = 'translateX(0)'; // Mostrar sidebar
       mainContent.classList.remove('expanded');
-      mainContent.style.marginLeft = `${sidebar.offsetWidth}px`; // Importante: ajustar margen del contenido
+      mainContent.style.marginLeft = 0; // Importante: ajustar margen del contenido
       overlay.classList.add('active'); // Mostrar overlay
     } else {
       sidebar.classList.add('collapsed');
@@ -297,6 +297,62 @@ document.addEventListener('DOMContentLoaded', function () {
     liveSearch();       // Llamada diferida
   });
 
+  // Función para detectar si un reporte está cancelado
+  function estaReporteCancelado(reporte) {
+    // Intentar diferentes formas de detectar si está cancelado
+    if (reporte.status && typeof reporte.status === 'string') {
+      const statusLower = reporte.status.toLowerCase();
+      if (statusLower.includes('cancelado') || statusLower.includes('cancelled') || 
+          statusLower.includes('inactive') || statusLower.includes('inactivo')) {
+        return true;
+      }
+    }
+    
+    // Si hay un campo específico para estado cancelado
+    if (reporte.cancelled === true || reporte.cancelado === true) {
+      return true;
+    }
+    
+    // Si hay un campo de estado con valores específicos
+    if (reporte.estado && typeof reporte.estado === 'string') {
+      const estadoLower = reporte.estado.toLowerCase();
+      if (estadoLower.includes('cancelado') || estadoLower.includes('inactivo')) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  // Función para aplicar estilos de cancelado a elementos específicos
+  function aplicarEstilosCancelados(celda, valor, campo) {
+    // Aplicar estilos a niveles (level-1, level-2, level-3)
+    if (campo === 'nivel' || campo === 'level' || campo === 'priority') {
+      if (celda.classList.contains('level-1') || 
+          celda.classList.contains('level-2') || 
+          celda.classList.contains('level-3')) {
+        celda.classList.add('cancelled');
+      }
+    }
+    
+    // Aplicar estilos a estados
+    if (campo === 'status' || campo === 'estado') {
+      if (celda.classList.contains('status-pending') || 
+          celda.classList.contains('status-completed')) {
+        // Para estados cancelados, usar la clase status-cancelled
+        celda.className = 'status status-cancelled';
+      }
+    }
+    
+    // Aplicar estilos a botones de acción
+    if (campo === 'acciones' || campo === 'actions' || valor.includes('button') || valor.includes('btn')) {
+      const botones = celda.querySelectorAll('.action-btn, .action-button');
+      botones.forEach(boton => {
+        boton.classList.add('disabled');
+      });
+    }
+  }
+
   function mostrarJSONEnTabla(jsonData) {
     const tablaContenedor = document.getElementById('reportes-table');
     const tabla = document.createElement('table');
@@ -321,9 +377,60 @@ document.addEventListener('DOMContentLoaded', function () {
       const tbody = document.createElement('tbody');
       datos.forEach(filaData => {
         const fila = document.createElement('tr');
+        
+        // Detectar si este reporte está cancelado
+        const estaCancelado = estaReporteCancelado(filaData);
+        
+        // Si está cancelado, aplicar la clase correspondiente a la fila
+        if (estaCancelado) {
+          fila.classList.add('cancelled');
+        }
+        
         columnas.forEach(columna => {
           const celda = document.createElement('td');
-          celda.textContent = filaData[columna];
+          const valor = filaData[columna];
+          
+          // Manejar diferentes tipos de valores
+          if (valor === null || valor === undefined) {
+            celda.textContent = '-';
+          } else if (typeof valor === 'object') {
+            celda.textContent = JSON.stringify(valor);
+          } else {
+            celda.textContent = valor;
+          }
+          
+          // Aplicar clases específicas basadas en el contenido
+          const valorStr = String(valor).toLowerCase();
+          const columnaStr = columna.toLowerCase();
+          
+          // Aplicar clases para niveles/prioridades
+          if ((columnaStr.includes('nivel') || columnaStr.includes('level') || columnaStr.includes('priority')) && valor) {
+            if (valorStr.includes('1') || valorStr.includes('bajo') || valorStr.includes('low')) {
+              celda.classList.add('level-1');
+            } else if (valorStr.includes('2') || valorStr.includes('medio') || valorStr.includes('medium')) {
+              celda.classList.add('level-2');
+            } else if (valorStr.includes('3') || valorStr.includes('alto') || valorStr.includes('high')) {
+              celda.classList.add('level-3');
+            }
+          }
+          
+          // Aplicar clases para estados
+          if ((columnaStr.includes('status') || columnaStr.includes('estado')) && valor) {
+            celda.classList.add('status');
+            if (valorStr.includes('pending') || valorStr.includes('pendiente') || valorStr.includes('proceso')) {
+              celda.classList.add('status-pending');
+            } else if (valorStr.includes('completed') || valorStr.includes('completado') || valorStr.includes('finalizado')) {
+              celda.classList.add('status-completed');
+            } else if (valorStr.includes('cancelled') || valorStr.includes('cancelado')) {
+              celda.classList.add('status-cancelled');
+            }
+          }
+          
+          // Si la fila está cancelada, aplicar estilos específicos
+          if (estaCancelado) {
+            aplicarEstilosCancelados(celda, String(valor), columna);
+          }
+          
           fila.appendChild(celda);
         });
         tbody.appendChild(fila);
