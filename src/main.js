@@ -39,7 +39,7 @@ document.getElementById("admin-login-form").addEventListener("submit", async fun
 
     const user = await meRes.json();
     if (user.rol === "admin") {
-        window.location.href = "dash.html";
+        window.location.href = "dashboard.html";
     } else {
         throw new Error("Acceso denegado: no eres administrador");
     }
