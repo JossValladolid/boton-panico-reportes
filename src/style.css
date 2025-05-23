@@ -1,0 +1,95 @@
+/* Reset básico */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-image: url('img/background.jpg');
+  background-size: cover;      /* Escala la imagen para cubrir toda la pantalla */
+  background-position: center; /* Centra la imagen */
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Contenedor del formulario */
+.container {
+  background-color: #ffffff;
+  padding: 40px 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+/* Títulos */
+.container h2 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+/* Formulario */
+form {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Etiquetas */
+label {
+  text-align: left;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #555;
+}
+
+#username {
+    margin-bottom: 5px;
+}
+
+/* Campos de entrada */
+input[type="text"],
+input[type="password"] {
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+input:focus {
+  border-color: #5c6bc0;
+  outline: none;
+}
+
+/* Botón */
+button.btn {
+  padding: 12px;
+  background-color: #8B0000;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button.btn:hover {
+  background-color: #700000;
+}
+
+/* Mensaje de error */
+.error-message {
+  color: #e53935;
+  margin-top: 10px;
+  font-size: 14px;
+}
