@@ -5,6 +5,35 @@
 const API_URL = "http://localhost:8000"
 
 // ============================================================================
+// FUNCIONES DE CARGA DE LIBRERÍA XLSX
+// ============================================================================
+
+// Función para cargar XLSX dinámicamente si no está disponible
+function loadXLSX() {
+  return new Promise((resolve, reject) => {
+    // Si XLSX ya está disponible, resolver inmediatamente
+    if (window.XLSX) {
+      resolve(window.XLSX)
+      return
+    }
+
+    // Crear script tag para cargar XLSX desde CDN
+    const script = document.createElement("script")
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+    script.onload = () => {
+      if (window.XLSX) {
+        console.log("XLSX cargado exitosamente")
+        resolve(window.XLSX)
+      } else {
+        reject(new Error("Error cargando XLSX"))
+      }
+    }
+    script.onerror = () => reject(new Error("Error cargando XLSX desde CDN"))
+    document.head.appendChild(script)
+  })
+}
+
+// ============================================================================
 // FUNCIONES DE AUTENTICACIÓN Y SEGURIDAD
 // ============================================================================
 
@@ -170,7 +199,19 @@ function estaReportePendiente(reporte) {
 // INICIALIZACIÓN DEL DOM Y EVENT LISTENERS
 // ============================================================================
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // ============================================================================
+  // CARGAR XLSX AL INICIO
+  // ============================================================================
+
+  try {
+    await loadXLSX()
+    console.log("XLSX está listo para usar")
+  } catch (error) {
+    console.error("Error cargando XLSX:", error)
+    // Continuar con la carga de la aplicación aunque XLSX falle
+  }
+
   // ============================================================================
   // ELEMENTOS DEL DOM
   // ============================================================================
@@ -399,6 +440,42 @@ document.addEventListener("DOMContentLoaded", () => {
       // Reactivar autoupdate en caso de error
       if (!hayTextoBusqueda) {
         autoUpdate = true
+      }
+    }
+  }
+
+  // ============================================================================
+  // FUNCIÓN DE ACORDEÓN MEJORADA
+  // ============================================================================
+
+  function setupAccordion() {
+    console.log("Configurando acordeones...")
+
+    document.querySelectorAll(".accordion-header").forEach((header) => {
+      // Remover event listeners existentes para evitar duplicados
+      header.removeEventListener("click", handleAccordionClick)
+
+      // Agregar nuevo event listener
+      header.addEventListener("click", handleAccordionClick)
+    })
+  }
+
+  function handleAccordionClick() {
+    console.log("Acordeón clickeado")
+
+    // Toggle de la clase active en el header
+    this.classList.toggle("active")
+
+    // Obtener el contenido (siguiente elemento hermano)
+    const content = this.nextElementSibling
+
+    if (content && content.classList.contains("accordion-content")) {
+      // Si está abierto, cerrarlo
+      if (content.style.maxHeight && content.style.maxHeight !== "0px") {
+        content.style.maxHeight = null
+      } else {
+        // Si está cerrado, abrirlo
+        content.style.maxHeight = content.scrollHeight + "px"
       }
     }
   }
@@ -646,13 +723,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function actualizarEstadoBotonExportar() {
     if (!datosActuales || datosActuales.length === 0) {
       exportarButton.disabled = true
-      exportarButton.style.opacity = "0.5"
-      exportarButton.style.cursor = "not-allowed"
+      exportarButton.classList.add("disabled")
       exportarButton.title = "No hay datos disponibles para exportar"
     } else {
       exportarButton.disabled = false
-      exportarButton.style.opacity = "1"
-      exportarButton.style.cursor = "pointer"
+      exportarButton.classList.remove("disabled")
       exportarButton.title = "Exportar datos a Excel"
     }
   }
@@ -833,9 +908,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const thead = document.createElement("thead")
       const encabezadoFila = document.createElement("tr")
       // Filtrar columnas para ocultar usuario_id
-      const columnas = Object.keys(datos[0]).filter(
-        (columna) => columna !== "usuario_id"
-      )
+      const columnas = Object.keys(datos[0]).filter((columna) => columna !== "usuario_id")
 
       // Agregar encabezados de las columnas de datos
       columnas.forEach((columna) => {
@@ -1024,25 +1097,54 @@ document.addEventListener("DOMContentLoaded", () => {
   // FUNCIONES DE EXPORTACIÓN
   // ============================================================================
 
-  function exportData(datosActuales) {
+  async function exportData(datosActuales) {
+    console.log("Iniciando exportación de datos:", datosActuales)
+
     // Verificación mejorada con mensaje más claro
     if (!datosActuales || datosActuales.length === 0) {
       mostrarError("No hay datos disponibles para exportar. Cargue datos en la tabla primero.")
       return
     }
 
+    // Verificar que XLSX esté disponible
+    if (!window.XLSX) {
+      console.log("XLSX no disponible, intentando cargar...")
+      try {
+        await loadXLSX()
+        console.log("XLSX cargado exitosamente para exportación")
+      } catch (error) {
+        console.error("Error cargando XLSX para exportación:", error)
+        mostrarError(
+          "Error: No se pudo cargar la librería de exportación. Por favor, verifique su conexión a internet e intente nuevamente.",
+        )
+        return
+      }
+    }
+
     try {
-      const worksheet = XLSX.utils.json_to_sheet(datosActuales)
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Reportes")
+      console.log("Creando archivo Excel...")
+      const worksheet = window.XLSX.utils.json_to_sheet(datosActuales)
+      const workbook = window.XLSX.utils.book_new()
+      window.XLSX.utils.book_append_sheet(workbook, worksheet, "Reportes")
 
       const fechaActual = new Date()
       const fecha = fechaActual.toISOString().replace(/T/, "_").replace(/:/g, "-").replace(/\..+/, "")
       const nombreArchivo = `reportes_${fecha}.xlsx`
 
-      XLSX.writeFile(workbook, nombreArchivo)
+      console.log("Descargando archivo:", nombreArchivo)
+      window.XLSX.writeFile(workbook, nombreArchivo)
       limpiarError()
       console.log(`Archivo exportado exitosamente: ${nombreArchivo}`)
+
+      // Usar clases CSS en lugar de estilos inline
+      const originalText = exportarButton.textContent
+      exportarButton.textContent = "¡Exportado!"
+      exportarButton.classList.add("exported")
+
+      setTimeout(() => {
+        exportarButton.textContent = originalText
+        exportarButton.classList.remove("exported")
+      }, 2000)
     } catch (error) {
       console.error("Error al exportar datos:", error)
       mostrarError("Error al exportar: " + (error.message || "No se pudo generar el archivo Excel"))
@@ -1119,6 +1221,11 @@ document.addEventListener("DOMContentLoaded", () => {
             sidebar.classList.remove("visible")
             overlay.classList.remove("active-mobile")
           }
+
+          // Reinicializar acordeones cuando se cambia de sección
+          setTimeout(() => {
+            setupAccordion()
+          }, 100)
         }
       })
     })
@@ -1133,6 +1240,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Inicializar las secciones
   initializeSections()
+
+  // Configurar acordeones
+  setupAccordion()
 
   // Inicialmente, el sidebar está oculto y el contenido principal expandido
   sidebar.classList.add("collapsed")
@@ -1236,6 +1346,7 @@ document.addEventListener("DOMContentLoaded", () => {
   })
 
   exportarButton.addEventListener("click", () => {
+    console.log("Botón exportar clickeado")
     if (exportarButton.disabled) {
       mostrarError("No hay datos disponibles para exportar.")
       return
@@ -1375,21 +1486,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Crear overlay para el fondo
-    let overlay = document.getElementById("modal-formulario-overlay")
-    if (!overlay) {
-      overlay = document.createElement("div")
-      overlay.id = "modal-formulario-overlay"
-      overlay.style.position = "fixed"
-      overlay.style.top = "0"
-      overlay.style.left = "0"
-      overlay.style.width = "100vw"
-      overlay.style.height = "100vh"
-      overlay.style.background = "rgba(0,0,0,0.35)"
-      overlay.style.zIndex = "10000"
-      overlay.style.display = "flex"
-      overlay.style.alignItems = "center"
-      overlay.style.justifyContent = "center"
-      document.body.appendChild(overlay)
+    let overlayElement = document.getElementById("modal-formulario-overlay")
+    if (!overlayElement) {
+      overlayElement = document.createElement("div")
+      overlayElement.id = "modal-formulario-overlay"
+      overlayElement.style.position = "fixed"
+      overlayElement.style.top = "0"
+      overlayElement.style.left = "0"
+      overlayElement.style.width = "100vw"
+      overlayElement.style.height = "100vh"
+      overlayElement.style.background = "rgba(0,0,0,0.35)"
+      overlayElement.style.zIndex = "10000"
+      overlayElement.style.display = "flex"
+      overlayElement.style.alignItems = "center"
+      overlayElement.style.justifyContent = "center"
+      document.body.appendChild(overlayElement)
     }
 
     // Crear modal
@@ -1420,15 +1531,15 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       </div>
     `
-    overlay.appendChild(modal)
+    overlayElement.appendChild(modal)
 
     // Cerrar modal
     const closeButton = modal.querySelector(".modal-close")
     closeButton.addEventListener("click", () => {
-      overlay.remove()
+      overlayElement.remove()
     })
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) overlay.remove()
+    overlayElement.addEventListener("click", (e) => {
+      if (e.target === overlayElement) overlayElement.remove()
     })
 
     // Obtener datos del formulario
