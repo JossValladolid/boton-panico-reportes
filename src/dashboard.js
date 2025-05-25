@@ -3,7 +3,7 @@ const API_URL = "http://localhost:8000"
 // Función centralizada para manejar peticiones con manejo de errores de autenticación
 async function authenticatedFetch(url, options = {}) {
   const token = localStorage.getItem("access_token")
-  
+
   if (!token) {
     handleAuthError()
     return null
@@ -11,31 +11,31 @@ async function authenticatedFetch(url, options = {}) {
 
   const defaultOptions = {
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options.headers
-    }
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   }
 
   const finalOptions = { ...defaultOptions, ...options }
 
   try {
     const response = await fetch(url, finalOptions)
-    
+
     // Manejar errores de autenticación de forma centralizada
     if (response.status === 401 || response.status === 403) {
-      console.warn('Token expirado o inválido, cerrando sesión...')
+      console.warn("Token expirado o inválido, cerrando sesión...")
       handleAuthError()
       return null
     }
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
-    
+
     return response
   } catch (error) {
-    console.error('Error en petición autenticada:', error)
+    console.error("Error en petición autenticada:", error)
     throw error
   }
 }
@@ -44,7 +44,7 @@ async function authenticatedFetch(url, options = {}) {
 function handleAuthError() {
   localStorage.removeItem("access_token")
   localStorage.removeItem("searchValue")
-  alert('Tu sesión ha expirado. Serás redirigido al login.')
+  alert("Tu sesión ha expirado. Serás redirigido al login.")
   window.location.href = "index.html"
 }
 
@@ -54,7 +54,7 @@ async function verifyTokenValidity() {
     const response = await authenticatedFetch(`${API_URL}/me`)
     return response !== null
   } catch (error) {
-    console.error('Error verificando token:', error)
+    console.error("Error verificando token:", error)
     return false
   }
 }
@@ -71,7 +71,7 @@ async function verificarAdmin() {
   try {
     const response = await authenticatedFetch(`${API_URL}/me`)
     if (!response) return false // Ya manejado por authenticatedFetch
-    
+
     const user = await response.json()
     if (user.rol !== "admin") {
       alert("Acceso denegado: no eres administrador")
@@ -81,16 +81,119 @@ async function verificarAdmin() {
     }
     return true
   } catch (error) {
-    console.error('Error al verificar admin:', error)
+    console.error("Error al verificar admin:", error)
     handleAuthError()
     return false
   }
 }
-
 // Ejecutar verificación de admin al cargar
-;(async function() {
+;(async () => {
   await verificarAdmin()
 })()
+
+// Función para verificar y esperar a que XLSX esté disponible
+function waitForXLSX() {
+  return new Promise((resolve, reject) => {
+    if (typeof XLSX !== "undefined") {
+      console.log("XLSX library loaded successfully")
+      resolve(XLSX)
+    } else {
+      // Esperar hasta 5 segundos para que se cargue
+      let attempts = 0
+      const maxAttempts = 50
+      const checkInterval = setInterval(() => {
+        attempts++
+        if (typeof XLSX !== "undefined") {
+          console.log("XLSX library loaded successfully after waiting")
+          clearInterval(checkInterval)
+          resolve(XLSX)
+        } else if (attempts >= maxAttempts) {
+          console.error("XLSX library failed to load after timeout")
+          clearInterval(checkInterval)
+          reject(new Error("XLSX library failed to load"))
+        }
+      }, 100)
+    }
+  })
+}
+
+// NUEVA FUNCIÓN: Setup del acordeón para preguntas frecuentes
+function setupAccordion() {
+  console.log("Configurando acordeón...")
+  const accordionHeaders = document.querySelectorAll(".accordion-header")
+
+  accordionHeaders.forEach((header) => {
+    // Remover listeners existentes para evitar duplicados
+    header.replaceWith(header.cloneNode(true))
+  })
+
+  // Volver a obtener los headers después del clonado
+  document.querySelectorAll(".accordion-header").forEach((header) => {
+    header.addEventListener("click", () => {
+      console.log("Click en accordion header")
+      header.classList.toggle("active")
+      const content = header.nextElementSibling
+      if (content && content.classList.contains("accordion-content")) {
+        if (content.style.maxHeight) {
+          content.style.maxHeight = null
+        } else {
+          content.style.maxHeight = content.scrollHeight + "px"
+        }
+      }
+    })
+  })
+}
+
+// NUEVA FUNCIÓN: Setup del formulario de contacto
+function setupContactForm() {
+  console.log("Configurando formulario de contacto...")
+  const contactForm = document.getElementById("contactForm")
+
+  if (contactForm) {
+    // Remover listeners existentes
+    const newForm = contactForm.cloneNode(true)
+    contactForm.parentNode.replaceChild(newForm, contactForm)
+
+    // Agregar nuevo listener
+    document.getElementById("contactForm").addEventListener("submit", (e) => {
+      e.preventDefault()
+      console.log("Formulario enviado")
+
+      // Obtener los valores del formulario con los IDs correctos
+      const nombre = document.getElementById("contactNombre")?.value || ""
+      const email = document.getElementById("contactEmail")?.value || ""
+      const asunto = document.getElementById("contactAsunto")?.value || ""
+      const mensaje = document.getElementById("contactMensaje")?.value || ""
+
+      // Validación básica
+      if (!nombre.trim() || !email.trim() || !mensaje.trim()) {
+        alert("Por favor, complete todos los campos obligatorios.")
+        return
+      }
+
+      // Mostrar mensaje de éxito
+      const successElement = document.getElementById("contactExito")
+      if (successElement) {
+        successElement.textContent = "Mensaje enviado con éxito"
+        successElement.style.color = "#5cb85c"
+        successElement.style.display = "block"
+      }
+
+      // Limpiar formulario
+      e.target.reset()
+
+      // Ocultar mensaje después de 3 segundos
+      setTimeout(() => {
+        if (successElement) {
+          successElement.textContent = ""
+          successElement.style.display = "none"
+        }
+      }, 3000)
+    })
+  } else {
+    console.log("Formulario de contacto no encontrado")
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const sidebar = document.querySelector(".sidebar")
@@ -190,6 +293,16 @@ document.addEventListener("DOMContentLoaded", () => {
             sidebar.classList.remove("visible")
             overlay.classList.remove("active-mobile")
           }
+
+          // NUEVO: Inicializar acordeón y formulario cuando se cambia a esas secciones
+          setTimeout(() => {
+            if (targetId === "preguntas-frecuentes") {
+              setupAccordion()
+            }
+            if (targetId === "contactanos") {
+              setupContactForm()
+            }
+          }, 100)
         }
       })
     })
@@ -197,6 +310,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Inicializar las secciones
   initializeSections()
+
+  // NUEVO: Inicializar acordeón y formulario de contacto al cargar la página
+  setTimeout(() => {
+    setupAccordion()
+    setupContactForm()
+  }, 500)
 
   // Funcionalidad del botón de cerrar sesión
   logoutButton.addEventListener("click", () => {
@@ -932,11 +1051,11 @@ document.addEventListener("DOMContentLoaded", () => {
   async function eliminarReporte(id) {
     try {
       const response = await authenticatedFetch(`${API_URL}/tasks/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
       })
-      
+
       if (!response) return // Ya manejado por authenticatedFetch
-      
+
       alert("Reporte eliminado exitosamente")
       cargarTabla(searchInput.value.trim() ? parsearConsulta(searchInput.value.trim()) : "")
     } catch (error) {
