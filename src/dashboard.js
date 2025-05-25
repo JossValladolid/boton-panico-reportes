@@ -1,4 +1,12 @@
+// ============================================================================
+// CONFIGURACIÓN Y CONSTANTES
+// ============================================================================
+
 const API_URL = "http://localhost:8000"
+
+// ============================================================================
+// FUNCIONES DE AUTENTICACIÓN Y SEGURIDAD
+// ============================================================================
 
 // Función centralizada para manejar peticiones con manejo de errores de autenticación
 async function authenticatedFetch(url, options = {}) {
@@ -91,111 +99,82 @@ async function verificarAdmin() {
   await verificarAdmin()
 })()
 
-// Función para verificar y esperar a que XLSX esté disponible
-function waitForXLSX() {
-  return new Promise((resolve, reject) => {
-    if (typeof XLSX !== "undefined") {
-      console.log("XLSX library loaded successfully")
-      resolve(XLSX)
-    } else {
-      // Esperar hasta 5 segundos para que se cargue
-      let attempts = 0
-      const maxAttempts = 50
-      const checkInterval = setInterval(() => {
-        attempts++
-        if (typeof XLSX !== "undefined") {
-          console.log("XLSX library loaded successfully after waiting")
-          clearInterval(checkInterval)
-          resolve(XLSX)
-        } else if (attempts >= maxAttempts) {
-          console.error("XLSX library failed to load after timeout")
-          clearInterval(checkInterval)
-          reject(new Error("XLSX library failed to load"))
-        }
-      }, 100)
+// ============================================================================
+// FUNCIONES DE VERIFICACIÓN DE ESTADO DE REPORTES
+// ============================================================================
+
+function estaReporteCancelado(reporte) {
+  if (reporte.status && typeof reporte.status === "string") {
+    const statusLower = reporte.status.toLowerCase()
+    if (
+      statusLower.includes("cancelado") ||
+      statusLower.includes("cancelled") ||
+      statusLower.includes("inactive") ||
+      statusLower.includes("inactivo")
+    ) {
+      return true
     }
-  })
-}
-
-// NUEVA FUNCIÓN: Setup del acordeón para preguntas frecuentes
-function setupAccordion() {
-  console.log("Configurando acordeón...")
-  const accordionHeaders = document.querySelectorAll(".accordion-header")
-
-  accordionHeaders.forEach((header) => {
-    // Remover listeners existentes para evitar duplicados
-    header.replaceWith(header.cloneNode(true))
-  })
-
-  // Volver a obtener los headers después del clonado
-  document.querySelectorAll(".accordion-header").forEach((header) => {
-    header.addEventListener("click", () => {
-      console.log("Click en accordion header")
-      header.classList.toggle("active")
-      const content = header.nextElementSibling
-      if (content && content.classList.contains("accordion-content")) {
-        if (content.style.maxHeight) {
-          content.style.maxHeight = null
-        } else {
-          content.style.maxHeight = content.scrollHeight + "px"
-        }
-      }
-    })
-  })
-}
-
-// NUEVA FUNCIÓN: Setup del formulario de contacto
-function setupContactForm() {
-  console.log("Configurando formulario de contacto...")
-  const contactForm = document.getElementById("contactForm")
-
-  if (contactForm) {
-    // Remover listeners existentes
-    const newForm = contactForm.cloneNode(true)
-    contactForm.parentNode.replaceChild(newForm, contactForm)
-
-    // Agregar nuevo listener
-    document.getElementById("contactForm").addEventListener("submit", (e) => {
-      e.preventDefault()
-      console.log("Formulario enviado")
-
-      // Obtener los valores del formulario con los IDs correctos
-      const nombre = document.getElementById("contactNombre")?.value || ""
-      const email = document.getElementById("contactEmail")?.value || ""
-      const asunto = document.getElementById("contactAsunto")?.value || ""
-      const mensaje = document.getElementById("contactMensaje")?.value || ""
-
-      // Validación básica
-      if (!nombre.trim() || !email.trim() || !mensaje.trim()) {
-        alert("Por favor, complete todos los campos obligatorios.")
-        return
-      }
-
-      // Mostrar mensaje de éxito
-      const successElement = document.getElementById("contactExito")
-      if (successElement) {
-        successElement.textContent = "Mensaje enviado con éxito"
-        successElement.style.color = "#5cb85c"
-        successElement.style.display = "block"
-      }
-
-      // Limpiar formulario
-      e.target.reset()
-
-      // Ocultar mensaje después de 3 segundos
-      setTimeout(() => {
-        if (successElement) {
-          successElement.textContent = ""
-          successElement.style.display = "none"
-        }
-      }, 3000)
-    })
-  } else {
-    console.log("Formulario de contacto no encontrado")
   }
+
+  if (reporte.cancelled === true || reporte.cancelado === true) {
+    return true
+  }
+
+  if (reporte.estado && typeof reporte.estado === "string") {
+    const estadoLower = reporte.estado.toLowerCase()
+    if (estadoLower.includes("cancelado") || estadoLower.includes("inactivo")) {
+      return true
+    }
+  }
+
+  return false
 }
+
+function estaReporteCompletado(reporte) {
+  if (reporte.status && typeof reporte.status === "string") {
+    const statusLower = reporte.status.toLowerCase()
+    if (statusLower.includes("completado") || statusLower.includes("completed") || statusLower.includes("finalizado")) {
+      return true
+    }
+  }
+
+  if (reporte.estado && typeof reporte.estado === "string") {
+    const estadoLower = reporte.estado.toLowerCase()
+    if (estadoLower.includes("completado") || estadoLower.includes("finalizado")) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function estaReportePendiente(reporte) {
+  if (reporte.status && typeof reporte.status === "string") {
+    const statusLower = reporte.status.toLowerCase()
+    if (statusLower.includes("pendiente") || statusLower.includes("pending")) {
+      return true
+    }
+  }
+
+  if (reporte.estado && typeof reporte.estado === "string") {
+    const estadoLower = reporte.estado.toLowerCase()
+    if (estadoLower.includes("pendiente") || estadoLower.includes("pending")) {
+      return true
+    }
+  }
+
+  return false
+}
+
+// ============================================================================
+// INICIALIZACIÓN DEL DOM Y EVENT LISTENERS
+// ============================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+  // ============================================================================
+  // ELEMENTOS DEL DOM
+  // ============================================================================
+
   const sidebar = document.querySelector(".sidebar")
   const sidebarToggle = document.getElementById("sidebar-toggle")
   const mainContent = document.querySelector(".main-content")
@@ -209,224 +188,447 @@ document.addEventListener("DOMContentLoaded", () => {
   overlay.classList.add("overlay")
   document.body.appendChild(overlay)
 
-  // Variables globales
+  // ============================================================================
+  // VARIABLES LOCALES
+  // ============================================================================
+
   let valores = ""
   let datosActuales = []
   let autoUpdate = true
   let hayTextoBusqueda = false
 
-  // NUEVA FUNCIÓN: Actualizar estado del botón de exportar
-  function actualizarEstadoBotonExportar() {
-    if (!datosActuales || datosActuales.length === 0) {
-      exportarButton.disabled = true
-      exportarButton.style.opacity = "0.5"
-      exportarButton.style.cursor = "not-allowed"
-      exportarButton.title = "No hay datos disponibles para exportar"
-    } else {
-      exportarButton.disabled = false
-      exportarButton.style.opacity = "1"
-      exportarButton.style.cursor = "pointer"
-      exportarButton.title = "Exportar datos a Excel"
+  // ============================================================================
+  // FUNCIONES DE MODAL DE CANCELACIÓN
+  // ============================================================================
+
+  // Crear modal de cancelación
+  function crearModalCancelacion(reporteId, botonAccion) {
+    // Remover modal existente si existe
+    const modalExistente = document.getElementById("modal-cancelacion")
+    if (modalExistente) {
+      modalExistente.remove()
     }
-  }
 
-  // Inicializar el estado del botón de exportar
-  actualizarEstadoBotonExportar()
+    // Crear modal
+    const modal = document.createElement("div")
+    modal.id = "modal-cancelacion"
+    modal.className = "modal-cancelacion"
 
-  // NUEVA FUNCIONALIDAD: Manejo de secciones del sidebar
-  function initializeSections() {
-    const sidebarLinks = document.querySelectorAll('.sidebar-nav a[href^="#"]')
-    const sections = document.querySelectorAll("section[id]")
+    // Obtener posición del botón de acción
+    const rect = botonAccion.getBoundingClientRect()
 
-    // Ocultar todas las secciones excepto la primera
-    sections.forEach((section, index) => {
-      if (index === 0) {
-        section.style.display = "block"
-      } else {
-        section.style.display = "none"
-      }
+    modal.innerHTML = `
+      <div class="modal-content-cancelacion">
+        <div class="modal-header-cancelacion">
+          <h4>Cancelar Reporte</h4>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body-cancelacion">
+          <label for="razon-cancelacion">Razón de la cancelación:</label>
+          <textarea id="razon-cancelacion" placeholder="Ingrese la razón de la cancelación..." rows="3"></textarea>
+        </div>
+        <div class="modal-footer-cancelacion">
+          <button class="btn-modal-cancelar">Cancelar</button>
+          <button class="btn-modal-confirmar">Confirmar</button>
+        </div>
+      </div>
+    `
+
+    // Posicionar modal cerca del botón
+    modal.style.position = "fixed"
+    modal.style.left = `${rect.left}px`
+    modal.style.top = `${rect.bottom + 10}px`
+    modal.style.zIndex = "1000"
+
+    // Ajustar posición si se sale de la pantalla
+    document.body.appendChild(modal)
+    const modalRect = modal.getBoundingClientRect()
+
+    if (modalRect.right > window.innerWidth) {
+      modal.style.left = `${window.innerWidth - modalRect.width - 20}px`
+    }
+
+    if (modalRect.bottom > window.innerHeight) {
+      modal.style.top = `${rect.top - modalRect.height - 10}px`
+    }
+
+    // Event listeners del modal
+    const closeButton = modal.querySelector(".modal-close")
+    const cancelButton = modal.querySelector(".btn-modal-cancelar")
+    const confirmButton = modal.querySelector(".btn-modal-confirmar")
+
+    const closeModal = () => {
+      modal.remove()
+    }
+
+    closeButton.addEventListener("click", closeModal)
+    cancelButton.addEventListener("click", closeModal)
+
+    confirmButton.addEventListener("click", () => {
+      confirmarCancelacion(reporteId)
     })
 
-    // Agregar event listeners a los enlaces del sidebar
-    sidebarLinks.forEach((link) => {
-      link.addEventListener("click", (e) => {
-        e.preventDefault()
-
-        const targetId = link.getAttribute("href").substring(1)
-        const targetSection = document.getElementById(targetId)
-
-        if (targetSection) {
-          // Ocultar todas las secciones
-          sections.forEach((section) => {
-            section.style.display = "none"
-          })
-
-          // Mostrar la sección seleccionada
-          targetSection.style.display = "block"
-
-          // Actualizar estado activo en el sidebar
-          const sidebarItems = document.querySelectorAll(".sidebar-nav li")
-          sidebarItems.forEach((item) => {
-            item.classList.remove("active")
-          })
-
-          // Agregar clase activa al elemento padre (li)
-          link.parentElement.classList.add("active")
-
-          // Cerrar sidebar despues de seleccionar
-          sidebarVisible = false
-          sidebar.classList.add("collapsed")
-          sidebar.style.transform = "translateX(-100%)"
-          mainContent.classList.add("expanded")
-          mainContent.style.marginLeft = "0"
-          overlay.classList.remove("active")
-          sidebar.classList.remove("visible")
-
-          // Cerrar sidebar en móvil después de seleccionar
-          if (window.innerWidth <= 576) {
-            sidebarVisible = false
-            sidebar.classList.add("collapsed")
-            sidebar.style.transform = "translateX(-100%)"
-            mainContent.classList.add("expanded")
-            mainContent.style.marginLeft = "0"
-            overlay.classList.remove("active")
-            sidebar.classList.remove("visible")
-            overlay.classList.remove("active-mobile")
-          }
-
-          // NUEVO: Inicializar acordeón y formulario cuando se cambia a esas secciones
-          setTimeout(() => {
-            if (targetId === "preguntas-frecuentes") {
-              setupAccordion()
-            }
-            if (targetId === "contactanos") {
-              setupContactForm()
-            }
-          }, 100)
-        }
-      })
-    })
+    // Enfocar textarea
+    setTimeout(() => {
+      document.getElementById("razon-cancelacion").focus()
+    }, 100)
   }
 
-  // Inicializar las secciones
-  initializeSections()
+  // ============================================================================
+  // FUNCIONES DE ACCIONES DE REPORTES
+  // ============================================================================
 
-  // NUEVO: Inicializar acordeón y formulario de contacto al cargar la página
-  setTimeout(() => {
-    setupAccordion()
-    setupContactForm()
-  }, 500)
+  // Confirmar cancelación
+  async function confirmarCancelacion(reporteId) {
+    const razonUsuario = document.getElementById("razon-cancelacion").value.trim()
+    const razon = `(admin) ${razonUsuario}`
 
-  // Funcionalidad del botón de cerrar sesión
-  logoutButton.addEventListener("click", () => {
-    if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
-      localStorage.removeItem("access_token")
-      localStorage.removeItem("searchValue")
-      alert("Sesión cerrada exitosamente")
-      window.location.href = "index.html"
-    }
-  })
-
-  // Inicialmente, el sidebar está oculto y el contenido principal expandido
-  let sidebarVisible = false
-  sidebar.classList.add("collapsed")
-  mainContent.classList.add("expanded")
-
-  // SISTEMA DE PERSISTENCIA CORREGIDO
-  function inicializarBusqueda() {
-    const savedSearch = localStorage.getItem("searchValue")
-    console.log("Búsqueda guardada:", savedSearch)
-
-    if (savedSearch && savedSearch.trim() !== "") {
-      // Restaurar el valor en el input
-      searchInput.value = savedSearch
-      hayTextoBusqueda = true
-      autoUpdate = false
-
-      console.log("Ejecutando búsqueda guardada...")
-      // Ejecutar la búsqueda después de un breve delay
-      setTimeout(() => {
-        barraDeBusqueda()
-      }, 500)
-    } else {
-      // Sin búsqueda guardada, cargar todos los datos
-      console.log("Sin búsqueda guardada, cargando todos los datos...")
-      hayTextoBusqueda = false
-      autoUpdate = true
-      cargarTabla("")
-    }
-  }
-
-  // Llamar a la inicialización después de configurar todas las funciones
-  setTimeout(inicializarBusqueda, 100)
-
-  sidebarToggle.addEventListener("click", (event) => {
-    event.stopPropagation()
-    sidebarVisible = !sidebarVisible
-
-    if (sidebarVisible) {
-      sidebar.classList.remove("collapsed")
-      sidebar.style.transform = "translateX(0)"
-      mainContent.classList.remove("expanded")
-      mainContent.style.marginLeft = 0
-      overlay.classList.add("active")
-    } else {
-      sidebar.classList.add("collapsed")
-      sidebar.style.transform = "translateX(-100%)"
-      mainContent.classList.add("expanded")
-      mainContent.style.marginLeft = "0"
-      overlay.classList.remove("active")
-    }
-  })
-
-  document.addEventListener("click", (event) => {
-    if (sidebarVisible && !sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
-      sidebarVisible = false
-      sidebar.classList.add("collapsed")
-      sidebar.style.transform = "translateX(-100%)"
-      mainContent.classList.add("expanded")
-      mainContent.style.marginLeft = "0"
-      overlay.classList.remove("active")
-    }
-  })
-
-  sidebar.addEventListener("click", (event) => {
-    event.stopPropagation()
-  })
-
-  function barraDeBusqueda() {
-    const valorBusqueda = searchInput.value.trim()
-    console.log("Ejecutando búsqueda con valor:", valorBusqueda)
-
-    hayTextoBusqueda = valorBusqueda !== ""
-
-    if (hayTextoBusqueda) {
-      localStorage.setItem("searchValue", valorBusqueda)
-    } else {
-      localStorage.removeItem("searchValue")
-    }
-
-    if (!hayTextoBusqueda) {
-      valores = ""
-      autoUpdate = true
-      cargarTabla(valores)
+    if (!razonUsuario) {
+      alert("Por favor, ingrese una razón para la cancelación.")
       return
     }
 
+    // Desactivar autoupdate durante la acción
+    autoUpdate = false
+
     try {
-      const parametrosBusqueda = parsearConsulta(valorBusqueda)
-      console.log("Parámetros de búsqueda:", parametrosBusqueda)
-      autoUpdate = false
-      cargarTabla(parametrosBusqueda)
+      // Primero cambiar el estado a "Cancelado"
+      const statusResponse = await authenticatedFetch(`${API_URL}/tasks/${reporteId}/estado`, {
+        method: "PUT",
+        body: JSON.stringify({
+          id: reporteId,
+          estado: "Cancelado",
+        }),
+      })
+
+      if (!statusResponse) return
+
+      // Luego actualizar la razón de cancelación
+      const razonResponse = await authenticatedFetch(`${API_URL}/tasks/${reporteId}/${encodeURIComponent(razon)}`, {
+        method: "PUT",
+      })
+
+      if (!razonResponse) return
+
+      alert("Reporte cancelado exitosamente")
+      document.getElementById("modal-cancelacion").remove()
+
+      // Recargar tabla
+      const searchValue = searchInput.value.trim()
+      cargarTabla(searchValue ? parsearConsulta(searchValue) : "")
+
+      // Reactivar autoupdate después de un delay si no hay búsqueda
+      setTimeout(() => {
+        if (!hayTextoBusqueda) {
+          autoUpdate = true
+        }
+      }, 2000)
     } catch (error) {
-      console.error("Error en parseo:", error)
+      console.error("Error al cancelar reporte:", error)
+      alert("Error al cancelar el reporte: " + error.message)
+      // Reactivar autoupdate en caso de error
+      if (!hayTextoBusqueda) {
+        autoUpdate = true
+      }
+    }
+  }
+
+  // Cambiar estado a pendiente
+  async function cambiarEstadoPendiente(reporteId) {
+    // Desactivar autoupdate durante la acción
+    autoUpdate = false
+
+    try {
+      const response = await authenticatedFetch(`${API_URL}/tasks/${reporteId}/estado`, {
+        method: "PUT",
+        body: JSON.stringify({
+          id: reporteId,
+          estado: "Pendiente",
+        }),
+      })
+
+      if (!response) return
+
+      alert("Formulario enviado correctamente")
+
+      // Recargar tabla
+      const searchValue = searchInput.value.trim()
+      cargarTabla(searchValue ? parsearConsulta(searchValue) : "")
+
+      if (!hayTextoBusqueda) {
+        autoUpdate = true
+      }
+    } catch (error) {
+      console.error("Error al cambiar estado:", error)
+      alert("Error al cambiar el estado: " + error.message)
+      // Reactivar autoupdate en caso de error
+      if (!hayTextoBusqueda) {
+        autoUpdate = true
+      }
+    }
+  }
+
+  // Eliminar reporte
+  async function eliminarReporte(id) {
+    if (!confirm(`¿Deseas eliminar el reporte con ID ${id}?`)) {
+      return
+    }
+
+    // Desactivar autoupdate durante la acción
+    autoUpdate = false
+
+    try {
+      const response = await authenticatedFetch(`${API_URL}/tasks/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!response) return
+
+      alert("Reporte eliminado exitosamente")
+      cargarTabla(searchInput.value.trim() ? parsearConsulta(searchInput.value.trim()) : "")
+
+      // Reactivar autoupdate después de un delay si no hay búsqueda
+      setTimeout(() => {
+        if (!hayTextoBusqueda) {
+          autoUpdate = true
+        }
+      }, 2000)
+    } catch (error) {
+      console.error("Error al eliminar:", error)
+      mostrarError("No se pudo eliminar el reporte: " + error.message)
+      // Reactivar autoupdate en caso de error
+      if (!hayTextoBusqueda) {
+        autoUpdate = true
+      }
+    }
+  }
+
+  // ============================================================================
+  // FUNCIONES DE DROPDOWN Y RESTRICCIONES
+  // ============================================================================
+
+  // Función para verificar si un reporte está cancelado/pendiente y deshabilitar opciones
+  function aplicarRestriccionesPorEstado(reporteId, dropdownMenu) {
+    setTimeout(() => {
+      const fila = document.querySelector(`tr[data-reporte-id="${reporteId}"]`)
+      if (!fila) return
+
+      const opcionFormulario = dropdownMenu.querySelector('.dropdown-item[data-action="formulario"]')
+      const opcionCancelar = dropdownMenu.querySelector('.dropdown-item[data-action="cancelar"]')
+
+      // Detectar estado por clases de la fila
+      const estaCancelado = fila.classList.contains("cancelled")
+      const estaPendiente = fila.classList.contains("pending")
+      const estaCompletado = fila.classList.contains("completed")
+
+      // Bloquear "Formulario" solo si está cancelado o pendiente
+      if (estaCancelado || estaPendiente) {
+        if (opcionFormulario) {
+          opcionFormulario.style.opacity = "0.5"
+          opcionFormulario.style.cursor = "not-allowed"
+          opcionFormulario.style.pointerEvents = "none"
+          opcionFormulario.title = "No disponible para reportes cancelados o pendientes"
+        }
+      } else {
+        // Habilitar opción formulario en cualquier otro caso (incluido completado)
+        if (opcionFormulario) {
+          opcionFormulario.style.opacity = "1"
+          opcionFormulario.style.cursor = "pointer"
+          opcionFormulario.style.pointerEvents = "auto"
+          opcionFormulario.title = "Ver formulario"
+        }
+      }
+
+      // Cancelar se bloquea si está cancelado o completado
+      if (estaCancelado || estaCompletado) {
+        if (opcionCancelar) {
+          opcionCancelar.style.opacity = "0.5"
+          opcionCancelar.style.cursor = "not-allowed"
+          opcionCancelar.style.pointerEvents = "none"
+          opcionCancelar.title = estaCompletado
+            ? "No disponible para reportes completados"
+            : "No disponible para reportes cancelados"
+        }
+      } else {
+        if (opcionCancelar) {
+          opcionCancelar.style.opacity = "1"
+          opcionCancelar.style.cursor = "pointer"
+          opcionCancelar.style.pointerEvents = "auto"
+          opcionCancelar.title = "Cancelar reporte"
+        }
+      }
+    }, 50)
+  }
+
+  // Crear dropdown de acciones
+  function crearDropdownAcciones(reporteId) {
+    const dropdownContainer = document.createElement("div")
+    dropdownContainer.className = "dropdown-acciones"
+
+    const dropdownButton = document.createElement("button")
+    dropdownButton.className = "dropdown-button"
+    dropdownButton.innerHTML = 'Acciones <span class="dropdown-arrow">▼</span>'
+
+    const dropdownMenu = document.createElement("div")
+    dropdownMenu.className = "dropdown-menu"
+
+    // Crear opciones con data attributes para identificarlas
+    dropdownMenu.innerHTML = `
+    <div class="dropdown-item" data-action="formulario">
+      <i class="fas fa-edit"></i> Formulario
+    </div>
+    <div class="dropdown-item" data-action="cancelar">
+      <i class="fas fa-times"></i> Cancelar
+    </div>
+    <div class="dropdown-item dropdown-item-danger" data-action="eliminar">
+      <i class="fas fa-trash"></i> Eliminar
+    </div>
+  `
+
+    dropdownContainer.appendChild(dropdownButton)
+    dropdownContainer.appendChild(dropdownMenu)
+
+    // Event listeners para las opciones del dropdown
+    const opcionFormulario = dropdownMenu.querySelector('[data-action="formulario"]')
+    const opcionCancelar = dropdownMenu.querySelector('[data-action="cancelar"]')
+    const opcionEliminar = dropdownMenu.querySelector('[data-action="eliminar"]')
+
+    opcionFormulario.addEventListener("click", async (e) => {
+      e.stopPropagation()
+      if (opcionFormulario.style.pointerEvents !== "none") {
+        const fila = document.querySelector(`tr[data-reporte-id="${reporteId}"]`)
+        if (fila && fila.classList.contains("cancelled")) return
+        if (fila && fila.classList.contains("pending")) return
+
+        if (fila && fila.classList.contains("completed")) {
+          // Si está completado, mostrar el modal con el formulario
+          await mostrarModalFormulario(reporteId, dropdownButton)
+        } else {
+          // Si está activo, cambiar a pendiente
+          await cambiarEstadoPendiente(reporteId)
+        }
+        dropdownMenu.classList.remove("show")
+      }
+    })
+
+    opcionCancelar.addEventListener("click", (e) => {
+      e.stopPropagation()
+      if (opcionCancelar.style.pointerEvents !== "none") {
+        crearModalCancelacion(reporteId, dropdownButton)
+        dropdownMenu.classList.remove("show")
+      }
+    })
+
+    opcionEliminar.addEventListener("click", (e) => {
+      e.stopPropagation()
+      eliminarReporte(reporteId)
+      dropdownMenu.classList.remove("show")
+    })
+
+    // Toggle dropdown
+    dropdownButton.addEventListener("click", (e) => {
+      e.stopPropagation()
+
+      // Desactivar autoupdate cuando se abre cualquier dropdown
       autoUpdate = false
-      const tablaContenedor = document.getElementById("reportes-table")
-      tablaContenedor.textContent = ""
-      mostrarError(`Error en la sintaxis de búsqueda: ${error.message}`)
-      // Actualizar estado del botón cuando hay error
-      datosActuales = []
-      actualizarEstadoBotonExportar()
+
+      // Si este dropdown ya está abierto, cerrarlo
+      if (dropdownMenu.classList.contains("show")) {
+        dropdownMenu.classList.remove("show")
+        dropdownMenu.style.zIndex = "9999"
+        // Reactivar autoupdate solo si no hay texto de búsqueda
+        if (!hayTextoBusqueda) {
+          autoUpdate = true
+        }
+        return
+      }
+
+      // Cerrar TODOS los otros dropdowns abiertos primero y resetear su z-index
+      document.querySelectorAll(".dropdown-menu.show").forEach((menu) => {
+        menu.classList.remove("show")
+        menu.style.zIndex = "9999"
+      })
+
+      // Calcular posición del dropdown centrado respecto al botón
+      const rect = dropdownButton.getBoundingClientRect()
+      const menuWidth = 150 // Ancho mínimo del dropdown
+
+      // Centrar horizontalmente respecto al botón
+      const centerX = rect.left + rect.width / 2 - menuWidth / 2
+
+      dropdownMenu.style.left = `${centerX}px`
+      dropdownMenu.style.top = `${rect.bottom + 5}px`
+
+      // Mostrar el dropdown
+      dropdownMenu.classList.add("show")
+
+      // Asegurar que este dropdown esté al frente de todos los demás
+      dropdownMenu.style.zIndex = "10001"
+
+      // Aplicar restricciones después de mostrar el dropdown
+      aplicarRestriccionesPorEstado(reporteId, dropdownMenu)
+
+      // Ajustar posición después de que se renderice para obtener el ancho real
+      setTimeout(() => {
+        const menuRect = dropdownMenu.getBoundingClientRect()
+        const realCenterX = rect.left + rect.width / 2 - menuRect.width / 2
+
+        // Ajustar horizontalmente si se sale por la derecha
+        if (realCenterX + menuRect.width > window.innerWidth) {
+          dropdownMenu.style.left = `${window.innerWidth - menuRect.width - 10}px`
+        }
+        // Ajustar horizontalmente si se sale por la izquierda
+        else if (realCenterX < 10) {
+          dropdownMenu.style.left = "10px"
+        }
+        // Usar la posición centrada si cabe
+        else {
+          dropdownMenu.style.left = `${realCenterX}px`
+        }
+
+        // Ajustar verticalmente si se sale por abajo
+        if (menuRect.bottom > window.innerHeight) {
+          dropdownMenu.style.top = `${rect.top - menuRect.height - 5}px`
+        }
+      }, 10)
+    })
+
+    // Cerrar dropdown al hacer click fuera
+    document.addEventListener("click", (e) => {
+      if (!dropdownContainer.contains(e.target)) {
+        dropdownMenu.classList.remove("show")
+        // Resetear z-index cuando se cierra
+        dropdownMenu.style.zIndex = "9999"
+        // Reactivar autoupdate solo si no hay texto de búsqueda
+        if (!hayTextoBusqueda) {
+          autoUpdate = true
+        }
+      }
+    })
+
+    return dropdownContainer
+  }
+
+  // ============================================================================
+  // FUNCIONES DE UTILIDAD Y HELPERS
+  // ============================================================================
+
+  function formatearEncabezado(texto) {
+    if (texto === "id") {
+      return "ID"
+    }
+    return texto
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase())
+  }
+
+  function debounce(func, delay) {
+    let timeoutId
+    return function (...args) {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => func.apply(this, args), delay)
     }
   }
 
@@ -441,25 +643,23 @@ document.addEventListener("DOMContentLoaded", () => {
     errorFetchElement.style.display = "none"
   }
 
-  searchInput.addEventListener("blur", () => {
-    const currentValue = searchInput.value.trim()
-    if (currentValue !== "") {
-      localStorage.setItem("searchValue", currentValue)
-      hayTextoBusqueda = true
-      autoUpdate = false
+  function actualizarEstadoBotonExportar() {
+    if (!datosActuales || datosActuales.length === 0) {
+      exportarButton.disabled = true
+      exportarButton.style.opacity = "0.5"
+      exportarButton.style.cursor = "not-allowed"
+      exportarButton.title = "No hay datos disponibles para exportar"
     } else {
-      localStorage.removeItem("searchValue")
-      hayTextoBusqueda = false
-      autoUpdate = true
+      exportarButton.disabled = false
+      exportarButton.style.opacity = "1"
+      exportarButton.style.cursor = "pointer"
+      exportarButton.title = "Exportar datos a Excel"
     }
-  })
+  }
 
-  searchInput.addEventListener("focus", () => {
-    if (searchInput.value.trim() !== "") {
-      hayTextoBusqueda = true
-      autoUpdate = false
-    }
-  })
+  // ============================================================================
+  // FUNCIONES DE BÚSQUEDA Y PARSEO
+  // ============================================================================
 
   function parsearConsulta(consulta) {
     console.log("Parseando consulta:", consulta)
@@ -539,118 +739,69 @@ document.addEventListener("DOMContentLoaded", () => {
     return resultado
   }
 
-  showAllButton.addEventListener("click", () => {
-    console.log("Botón mostrar todos clickeado")
-    searchInput.value = ""
-    valores = ""
-    hayTextoBusqueda = false
-    autoUpdate = true
-    localStorage.removeItem("searchValue")
-    limpiarError()
-    cargarTabla(valores)
-  })
+  function barraDeBusqueda() {
+    const valorBusqueda = searchInput.value.trim()
+    console.log("Ejecutando búsqueda con valor:", valorBusqueda)
 
-  document.addEventListener("keypress", (event) => {
-    var searchInputFocused = document.activeElement === searchInput
-    if (event.key === "Enter" && searchInputFocused) {
-      barraDeBusqueda()
+    hayTextoBusqueda = valorBusqueda !== ""
+
+    if (hayTextoBusqueda) {
+      localStorage.setItem("searchValue", valorBusqueda)
+    } else {
+      localStorage.removeItem("searchValue")
     }
-  })
 
-  document.addEventListener("selectionchange", () => {
-    const selection = document.getSelection()
-    if (selection && selection.toString().length > 0) {
-      autoUpdate = false
-    } else if (!hayTextoBusqueda) {
+    if (!hayTextoBusqueda) {
+      valores = ""
       autoUpdate = true
+      cargarTabla(valores)
+      return
     }
-  })
 
-  document.addEventListener("submit", (e) => {
-    const currentValue = searchInput.value.trim()
-    if (currentValue !== "") {
-      localStorage.setItem("searchValue", currentValue)
-    }
-  })
-
-  function formatearEncabezado(texto) {
-    if (texto === "id") {
-      return "ID"
-    }
-    return texto
-      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (l) => l.toUpperCase())
-  }
-
-  function debounce(func, delay) {
-    let timeoutId
-    return function (...args) {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => func.apply(this, args), delay)
+    try {
+      const parametrosBusqueda = parsearConsulta(valorBusqueda)
+      console.log("Parámetros de búsqueda:", parametrosBusqueda)
+      autoUpdate = false
+      cargarTabla(parametrosBusqueda)
+    } catch (error) {
+      console.error("Error en parseo:", error)
+      autoUpdate = false
+      const tablaContenedor = document.getElementById("reportes-table")
+      tablaContenedor.textContent = ""
+      mostrarError(`Error en la sintaxis de búsqueda: ${error.message}`)
+      // Actualizar estado del botón cuando hay error
+      datosActuales = []
+      actualizarEstadoBotonExportar()
     }
   }
 
-  const liveSearch = debounce(() => {
-    barraDeBusqueda()
-  }, 400)
+  function inicializarBusqueda() {
+    const savedSearch = localStorage.getItem("searchValue")
+    console.log("Búsqueda guardada:", savedSearch)
 
-  searchInput.addEventListener("input", () => {
-    hayTextoBusqueda = searchInput.value.trim() !== ""
-    autoUpdate = !hayTextoBusqueda
-    liveSearch()
-  })
+    if (savedSearch && savedSearch.trim() !== "") {
+      // Restaurar el valor en el input
+      searchInput.value = savedSearch
+      hayTextoBusqueda = true
+      autoUpdate = false
 
-  function estaReporteCancelado(reporte) {
-    if (reporte.status && typeof reporte.status === "string") {
-      const statusLower = reporte.status.toLowerCase()
-      if (
-        statusLower.includes("cancelado") ||
-        statusLower.includes("cancelled") ||
-        statusLower.includes("inactive") ||
-        statusLower.includes("inactivo")
-      ) {
-        return true
-      }
+      console.log("Ejecutando búsqueda guardada...")
+      // Ejecutar la búsqueda después de un breve delay
+      setTimeout(() => {
+        barraDeBusqueda()
+      }, 500)
+    } else {
+      // Sin búsqueda guardada, cargar todos los datos
+      console.log("Sin búsqueda guardada, cargando todos los datos...")
+      hayTextoBusqueda = false
+      autoUpdate = true
+      cargarTabla("")
     }
-
-    if (reporte.cancelled === true || reporte.cancelado === true) {
-      return true
-    }
-
-    if (reporte.estado && typeof reporte.estado === "string") {
-      const estadoLower = reporte.estado.toLowerCase()
-      if (estadoLower.includes("cancelado") || estadoLower.includes("inactivo")) {
-        return true
-      }
-    }
-
-    return false
   }
 
-  // Nueva función para verificar si un reporte está completado
-  function estaReporteCompletado(reporte) {
-    if (reporte.status && typeof reporte.status === "string") {
-      const statusLower = reporte.status.toLowerCase()
-      if (
-        statusLower.includes("completado") ||
-        statusLower.includes("completed") ||
-        statusLower.includes("finalizado")
-      ) {
-        return true
-      }
-    }
-
-    if (reporte.estado && typeof reporte.estado === "string") {
-      const estadoLower = reporte.estado.toLowerCase()
-      if (estadoLower.includes("completado") || estadoLower.includes("finalizado")) {
-        return true
-      }
-    }
-
-    return false
-  }
+  // ============================================================================
+  // FUNCIONES DE TABLA Y VISUALIZACIÓN
+  // ============================================================================
 
   function aplicarEstilosCancelados(celda, valor, campo) {
     if (campo === "nivel" || campo === "level" || campo === "priority") {
@@ -670,152 +821,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function crearDropdownEstado(valorActual, taskId, tdElement) {
-    const select = document.createElement("select")
-    select.classList.add("status-dropdown")
-    select.dataset.taskId = taskId
-
-    const estados = [
-      { value: "Activo", label: "Activo" },
-      { value: "Pendiente", label: "Pendiente" },
-      { value: "Completado", label: "Completado" },
-      { value: "Cancelado", label: "Cancelado" },
-    ]
-
-    estados.forEach((estado) => {
-      const option = document.createElement("option")
-      option.value = estado.value
-      option.textContent = estado.label
-      if (valorActual === estado.value) {
-        option.selected = true
-      }
-      select.appendChild(option)
-    })
-
-    // Aplicar estilos para estados cancelados y completados
-    if (valorActual === "Cancelado" || valorActual === "Completado") {
-      select.disabled = true
-      select.classList.add(valorActual === "Cancelado" ? "status-cancelled" : "status-completed")
-      // Aplicar los mismos estilos de cancelado a completado
-      if (valorActual === "Completado") {
-        select.classList.add("status-cancelled")
-      }
-    }
-
-    // Desactivar autoupdate mientras está activo
-    select.addEventListener("focus", () => {
-      autoUpdate = false
-    })
-
-    select.addEventListener("blur", () => {
-      if (!hayTextoBusqueda) {
-        autoUpdate = true
-      }
-    })
-
-    // Confirmación antes de actualizar
-    select.addEventListener("change", (e) => {
-      const nuevoEstado = e.target.value
-      const taskId = e.target.dataset.taskId
-      const tarea = datosActuales.find((t) => t.id == taskId)
-      const estadoAnterior = tarea?.estado
-
-      if (!estadoAnterior || nuevoEstado === estadoAnterior) {
-        return
-      }
-
-      const confirmar = confirm(`¿Confirmar cambio de estado de "${estadoAnterior}" a "${nuevoEstado}"?`)
-      if (!confirmar) {
-        e.target.value = estadoAnterior
-        return
-      }
-
-      actualizarEstadoTarea(taskId, nuevoEstado, e.target, tdElement)
-    })
-
-    return select
-  }
-
-  async function actualizarEstadoTarea(taskId, nuevoEstado, selectElement, tdElement) {
-    const tareaActual = datosActuales.find((t) => t.id == taskId)
-    if (!tareaActual) {
-      mostrarError("Tarea no encontrada.")
-      return
-    }
-
-    const descripcionLimpia = tareaActual.descripcion?.trim()
-    if (!descripcionLimpia) {
-      mostrarError("La descripción no puede estar vacía.")
-      return
-    }
-
-    selectElement.disabled = true
-    selectElement.style.opacity = "0.6"
-
-    try {
-      const response = await authenticatedFetch(`${API_URL}/tasks/${taskId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          id: Number.parseInt(taskId),
-          descripcion: descripcionLimpia,
-          estado: nuevoEstado,
-        }),
-      })
-
-      if (!response) return // Ya manejado por authenticatedFetch
-
-      const tareaActualizada = await response.json()
-      console.log("Tarea actualizada exitosamente:", tareaActualizada)
-      refrescarTabla()
-
-      const indice = datosActuales.findIndex((t) => t.id == taskId)
-      if (indice !== -1) {
-        datosActuales[indice].estado = nuevoEstado
-      }
-
-      // Aplicar clase al <td>, no al <select>
-      if (tdElement) {
-        tdElement.className = "status"
-        if (nuevoEstado === "Activo") tdElement.classList.add("status-active")
-        else if (nuevoEstado === "Pendiente") tdElement.classList.add("status-pending")
-        else if (nuevoEstado === "Completado") {
-          tdElement.classList.add("status-completed")
-          // Aplicar también la clase de cancelado para que tenga los mismos estilos
-          tdElement.classList.add("status-cancelled")
-        } else if (nuevoEstado === "Cancelado") tdElement.classList.add("status-cancelled")
-      }
-
-      // Si el estado es completado, aplicar los estilos visuales pero no deshabilitar el botón
-      if (nuevoEstado === "Completado") {
-        selectElement.classList.add("status-cancelled")
-        selectElement.disabled = true
-
-        // Buscar y habilitar el botón de eliminar en esta fila
-        const fila = tdElement.closest("tr")
-        if (fila) {
-          const botonEliminar = fila.querySelector(".btn-eliminar")
-          if (botonEliminar) {
-            botonEliminar.classList.remove("disabled")
-          }
-        }
-      }
-
-      limpiarError()
-      console.log(`Estado de la tarea ${taskId} actualizado a ${nuevoEstado}`)
-    } catch (error) {
-      console.error("Error al actualizar estado:", error)
-
-      if (tareaActual) {
-        selectElement.value = tareaActual.estado || "Activo"
-      }
-
-      mostrarError(`Error al actualizar estado: ${error.message}`)
-    } finally {
-      selectElement.disabled = nuevoEstado === "Cancelado" || nuevoEstado === "Completado"
-      selectElement.style.opacity = "1"
-    }
-  }
-
   function mostrarJSONEnTabla(jsonData) {
     console.log("Mostrando datos en tabla:", jsonData)
     const tablaContenedor = document.getElementById("reportes-table")
@@ -827,7 +832,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (datos.length > 0) {
       const thead = document.createElement("thead")
       const encabezadoFila = document.createElement("tr")
-      const columnas = Object.keys(datos[0])
+      // Filtrar columnas para ocultar usuario_id
+      const columnas = Object.keys(datos[0]).filter(
+        (columna) => columna !== "usuario_id"
+      )
 
       // Agregar encabezados de las columnas de datos
       columnas.forEach((columna) => {
@@ -836,11 +844,11 @@ document.addEventListener("DOMContentLoaded", () => {
         encabezadoFila.appendChild(th)
       })
 
-      // Agregar encabezado para la columna de eliminar UNA SOLA VEZ
-      const thEliminar = document.createElement("th")
-      thEliminar.textContent = "Acciones"
-      thEliminar.style.textAlign = "center"
-      encabezadoFila.appendChild(thEliminar)
+      // Agregar encabezado para la columna de acciones
+      const thAcciones = document.createElement("th")
+      thAcciones.textContent = "Acciones"
+      thAcciones.style.textAlign = "center"
+      encabezadoFila.appendChild(thAcciones)
 
       thead.appendChild(encabezadoFila)
       tabla.appendChild(thead)
@@ -848,102 +856,87 @@ document.addEventListener("DOMContentLoaded", () => {
       const tbody = document.createElement("tbody")
       datos.forEach((filaData) => {
         const fila = document.createElement("tr")
+        fila.setAttribute("data-reporte-id", filaData.id) // Para identificar la fila
         const estaCancelado = estaReporteCancelado(filaData)
         const estaCompletado = estaReporteCompletado(filaData)
+        const estaPendiente = estaReportePendiente(filaData)
 
-        // Aplicar clase cancelled a la fila si está cancelado o completado
-        if (estaCancelado || estaCompletado) {
+        if (estaCancelado) {
           fila.classList.add("cancelled")
         }
+        if (estaCompletado) {
+          fila.classList.add("completed")
+        }
+        if (estaPendiente) {
+          fila.classList.add("pending")
+        }
 
-        // Crear celdas para las columnas de datos
+        // Crear celdas para las columnas de datos (sin usuario_id)
         columnas.forEach((columna) => {
           const celda = document.createElement("td")
           const valor = filaData[columna]
           const valorStr = String(valor).toLowerCase()
           const columnaStr = columna.toLowerCase()
 
-          if ((columnaStr === "estado" || columnaStr === "status") && filaData.id) {
-            celda.classList.add("status")
-
-            // Aplicar clase visual al <td> según valor actual
-            if (valor === "Activo") celda.classList.add("status-active")
-            else if (valor === "Pendiente") celda.classList.add("status-pending")
-            else if (valor === "Completado") {
-              celda.classList.add("status-completed")
-              // Aplicar también la clase de cancelado para que tenga los mismos estilos
-              celda.classList.add("status-cancelled")
-            } else if (valor === "Cancelado") celda.classList.add("status-cancelled")
-
-            // Crear y añadir el dropdown al <td>, pasando la celda
-            const dropdown = crearDropdownEstado(valor, filaData.id, celda)
-            celda.appendChild(dropdown)
+          if (valor === null || valor === undefined) {
+            celda.textContent = "-"
+          } else if (typeof valor === "object") {
+            celda.textContent = JSON.stringify(valor)
           } else {
-            if (valor === null || valor === undefined) {
-              celda.textContent = "-"
-            } else if (typeof valor === "object") {
-              celda.textContent = JSON.stringify(valor)
-            } else {
-              celda.textContent = valor
-            }
+            celda.textContent = valor
+          }
 
-            // Estilos por nivel o prioridad
-            if (
-              (columnaStr.includes("nivel") || columnaStr.includes("level") || columnaStr.includes("priority")) &&
-              valor
+          // Estilos por estado - solo visual, sin dropdown
+          if ((columnaStr.includes("status") || columnaStr.includes("estado")) && valor) {
+            celda.classList.add("status")
+            if (valorStr.includes("activo") || valorStr.includes("active")) {
+              celda.classList.add("status-active")
+            } else if (valorStr.includes("pending") || valorStr.includes("pendiente") || valorStr.includes("proceso")) {
+              celda.classList.add("status-pending")
+            } else if (
+              valorStr.includes("completed") ||
+              valorStr.includes("completado") ||
+              valorStr.includes("finalizado")
             ) {
-              if (valorStr.includes("1") || valorStr.includes("bajo") || valorStr.includes("low")) {
-                celda.classList.add("level-1")
-              } else if (valorStr.includes("2") || valorStr.includes("medio") || valorStr.includes("medium")) {
-                celda.classList.add("level-2")
-              } else if (valorStr.includes("3") || valorStr.includes("alto") || valorStr.includes("high")) {
-                celda.classList.add("level-3")
-              }
-            }
-
-            // Estilos por estado si no tiene dropdown (sin ID)
-            if ((columnaStr.includes("status") || columnaStr.includes("estado")) && valor && !filaData.id) {
-              celda.classList.add("status")
-              if (valorStr.includes("pending") || valorStr.includes("pendiente") || valorStr.includes("proceso")) {
-                celda.classList.add("status-pending")
-              } else if (
-                valorStr.includes("completed") ||
-                valorStr.includes("completado") ||
-                valorStr.includes("finalizado")
-              ) {
-                celda.classList.add("status-completed")
-                // Aplicar también la clase de cancelado para que tenga los mismos estilos
-                celda.classList.add("status-cancelled")
-              } else if (valorStr.includes("cancelled") || valorStr.includes("cancelado")) {
-                celda.classList.add("status-cancelled")
-              }
+              celda.classList.add("status-completed")
+            } else if (valorStr.includes("cancelled") || valorStr.includes("cancelado")) {
+              celda.classList.add("status-cancelled")
             }
           }
 
-          // Aplicar estilos de cancelado tanto para reportes cancelados como completados
-          if (estaCancelado || estaCompletado) {
+          // Estilos por nivel o prioridad
+          if (
+            (columnaStr.includes("nivel") || columnaStr.includes("level") || columnaStr.includes("priority")) &&
+            valor
+          ) {
+            if (valorStr.includes("1") || valorStr.includes("bajo") || valorStr.includes("low")) {
+              celda.classList.add("level-1")
+            } else if (valorStr.includes("2") || valorStr.includes("medio") || valorStr.includes("medium")) {
+              celda.classList.add("level-2")
+            } else if (valorStr.includes("3") || valorStr.includes("alto") || valorStr.includes("high")) {
+              celda.classList.add("level-3")
+            }
+          }
+
+          // Aplicar estilos de cancelado/completado solo si corresponde
+          if (estaCancelado) {
             aplicarEstilosCancelados(celda, String(valor), columna)
+          }
+          if (estaCompletado) {
+            // Si quieres aplicar estilos especiales para completados, puedes hacerlo aquí
           }
 
           fila.appendChild(celda)
         })
 
-        // Crear celda para botón de eliminar
-        const celdaEliminar = document.createElement("td")
-        celdaEliminar.style.textAlign = "center"
+        // Crear celda para dropdown de acciones
+        const celdaAcciones = document.createElement("td")
+        celdaAcciones.style.textAlign = "center"
+        celdaAcciones.className = "acciones-cell"
 
-        const botonEliminar = document.createElement("button")
-        botonEliminar.textContent = "Eliminar"
-        botonEliminar.classList.add("btn-eliminar")
-
-        botonEliminar.addEventListener("click", () => {
-          if (confirm(`¿Deseas eliminar el reporte con ID ${filaData.id}?`)) {
-            eliminarReporte(filaData.id)
-          }
-        })
-
-        celdaEliminar.appendChild(botonEliminar)
-        fila.appendChild(celdaEliminar)
+        const dropdown = crearDropdownAcciones(filaData.id)
+        celdaAcciones.appendChild(dropdown)
+        fila.appendChild(celdaAcciones)
 
         tbody.appendChild(fila)
       })
@@ -953,13 +946,13 @@ document.addEventListener("DOMContentLoaded", () => {
       tablaContenedor.appendChild(tabla)
       limpiarError()
 
-      // ACTUALIZAR: Actualizar estado del botón después de mostrar datos
+      // Actualizar estado del botón después de mostrar datos
       datosActuales = datos
       actualizarEstadoBotonExportar()
     } else {
       tablaContenedor.innerHTML = ""
       mostrarError("No se encontraron resultados para la búsqueda actual")
-      // ACTUALIZAR: Limpiar datos y actualizar botón cuando no hay resultados
+      // Limpiar datos y actualizar botón cuando no hay resultados
       datosActuales = []
       actualizarEstadoBotonExportar()
     }
@@ -988,13 +981,13 @@ document.addEventListener("DOMContentLoaded", () => {
         mostrarError("Por el momento no se ha generado ningun reporte.")
         const tablaContenedor = document.getElementById("reportes-table")
         tablaContenedor.innerHTML = ""
-        // ACTUALIZAR: Actualizar botón cuando no hay datos
+        // Actualizar botón cuando no hay datos
         actualizarEstadoBotonExportar()
       } else if (Array.isArray(data) && data.length === 0) {
         mostrarError("La búsqueda no produjo resultados. Intente con otros términos.")
         const tablaContenedor = document.getElementById("reportes-table")
         tablaContenedor.innerHTML = ""
-        // ACTUALIZAR: Actualizar botón cuando no hay resultados de búsqueda
+        // Actualizar botón cuando no hay resultados de búsqueda
         actualizarEstadoBotonExportar()
       } else {
         mostrarJSONEnTabla(data)
@@ -1011,7 +1004,7 @@ document.addEventListener("DOMContentLoaded", () => {
         valores = ""
       }
       datosActuales = []
-      // ACTUALIZAR: Actualizar botón cuando hay error
+      // Actualizar botón cuando hay error
       actualizarEstadoBotonExportar()
 
       if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
@@ -1027,46 +1020,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Verificar periódicamente la validez del token y actualizar automáticamente
-  setInterval(async () => {
-    hayTextoBusqueda = searchInput.value.trim() !== ""
+  // ============================================================================
+  // FUNCIONES DE EXPORTACIÓN
+  // ============================================================================
 
-    if (autoUpdate && !hayTextoBusqueda) {
-      console.log("Actualizando automáticamente...")
-      // Verificar token antes de actualizar
-      const isValid = await verifyTokenValidity()
-      if (isValid) {
-        cargarTabla(valores)
-      }
-    }
-  }, 30000) // Verificar cada 30 segundos
-
-  // Actualización más frecuente de reportes
-  setInterval(() => {
-    if (autoUpdate && !hayTextoBusqueda) {
-      cargarTabla(valores)
-    }
-  }, 3000)
-
-  async function eliminarReporte(id) {
-    try {
-      const response = await authenticatedFetch(`${API_URL}/tasks/${id}`, {
-        method: "DELETE",
-      })
-
-      if (!response) return // Ya manejado por authenticatedFetch
-
-      alert("Reporte eliminado exitosamente")
-      cargarTabla(searchInput.value.trim() ? parsearConsulta(searchInput.value.trim()) : "")
-    } catch (error) {
-      console.error("Error al eliminar:", error)
-      mostrarError("No se pudo eliminar el reporte: " + error.message)
-    }
-  }
-
-  // Funciones de exportar y refresh
   function exportData(datosActuales) {
-    // ACTUALIZAR: Verificación mejorada con mensaje más claro
+    // Verificación mejorada con mensaje más claro
     if (!datosActuales || datosActuales.length === 0) {
       mostrarError("No hay datos disponibles para exportar. Cargue datos en la tabla primero.")
       return
@@ -1090,15 +1049,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // ACTUALIZAR: Event listener mejorado para el botón de exportar
-  exportarButton.addEventListener("click", () => {
-    if (exportarButton.disabled) {
-      mostrarError("No hay datos disponibles para exportar.")
-      return
-    }
-    exportData(datosActuales)
-  })
-
   function refrescarTabla() {
     const valorBusqueda = searchInput.value.trim()
     if (valorBusqueda) {
@@ -1108,22 +1058,220 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // ============================================================================
+  // FUNCIONES DE SIDEBAR Y NAVEGACIÓN
+  // ============================================================================
+
+  function initializeSections() {
+    const sidebarLinks = document.querySelectorAll('.sidebar-nav a[href^="#"]')
+    const sections = document.querySelectorAll("section[id]")
+
+    // Ocultar todas las secciones excepto la primera
+    sections.forEach((section, index) => {
+      if (index === 0) {
+        section.style.display = "block"
+      } else {
+        section.style.display = "none"
+      }
+    })
+
+    // Agregar event listeners a los enlaces del sidebar
+    sidebarLinks.forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault()
+
+        const targetId = link.getAttribute("href").substring(1)
+        const targetSection = document.getElementById(targetId)
+
+        if (targetSection) {
+          // Ocultar todas las secciones
+          sections.forEach((section) => {
+            section.style.display = "none"
+          })
+
+          // Mostrar la sección seleccionada
+          targetSection.style.display = "block"
+
+          // Actualizar estado activo en el sidebar
+          const sidebarItems = document.querySelectorAll(".sidebar-nav li")
+          sidebarItems.forEach((item) => {
+            item.classList.remove("active")
+          })
+
+          // Agregar clase activa al elemento padre (li)
+          link.parentElement.classList.add("active")
+
+          // Cerrar sidebar despues de seleccionar
+          sidebar.classList.add("collapsed")
+          sidebar.style.transform = "translateX(-100%)"
+          mainContent.classList.add("expanded")
+          mainContent.style.marginLeft = "0"
+          overlay.classList.remove("active")
+          sidebar.classList.remove("visible")
+
+          // Cerrar sidebar en móvil después de seleccionar
+          if (window.innerWidth <= 576) {
+            sidebar.classList.add("collapsed")
+            sidebar.style.transform = "translateX(-100%)"
+            mainContent.classList.add("expanded")
+            mainContent.style.marginLeft = "0"
+            overlay.classList.remove("active")
+            sidebar.classList.remove("visible")
+            overlay.classList.remove("active-mobile")
+          }
+        }
+      })
+    })
+  }
+
+  // ============================================================================
+  // INICIALIZACIÓN Y CONFIGURACIÓN INICIAL
+  // ============================================================================
+
+  // Inicializar el estado del botón de exportar
+  actualizarEstadoBotonExportar()
+
+  // Inicializar las secciones
+  initializeSections()
+
+  // Inicialmente, el sidebar está oculto y el contenido principal expandido
+  sidebar.classList.add("collapsed")
+  mainContent.classList.add("expanded")
+
+  // Llamar a la inicialización después de configurar todas las funciones
+  setTimeout(inicializarBusqueda, 100)
+
+  // ============================================================================
+  // EVENT LISTENERS
+  // ============================================================================
+
+  // Funcionalidad del botón de cerrar sesión
+  logoutButton.addEventListener("click", () => {
+    if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
+      localStorage.removeItem("access_token")
+      localStorage.removeItem("searchValue")
+      alert("Sesión cerrada exitosamente")
+      window.location.href = "index.html"
+    }
+  })
+
+  // Sidebar toggle
+  sidebarToggle.addEventListener("click", (event) => {
+    event.stopPropagation()
+    const sidebarVisible = !sidebar.classList.contains("collapsed")
+
+    if (!sidebarVisible) {
+      sidebar.classList.remove("collapsed")
+      sidebar.style.transform = "translateX(0)"
+      mainContent.classList.remove("expanded")
+      mainContent.style.marginLeft = 0
+      overlay.classList.add("active")
+    } else {
+      sidebar.classList.add("collapsed")
+      sidebar.style.transform = "translateX(-100%)"
+      mainContent.classList.add("expanded")
+      mainContent.style.marginLeft = "0"
+      overlay.classList.remove("active")
+    }
+  })
+
+  // Click fuera del sidebar
+  document.addEventListener("click", (event) => {
+    const sidebarVisible = !sidebar.classList.contains("collapsed")
+    if (sidebarVisible && !sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
+      sidebar.classList.add("collapsed")
+      sidebar.style.transform = "translateX(-100%)"
+      mainContent.classList.add("expanded")
+      mainContent.style.marginLeft = "0"
+      overlay.classList.remove("active")
+    }
+  })
+
+  // Prevenir cierre del sidebar al hacer click dentro
+  sidebar.addEventListener("click", (event) => {
+    event.stopPropagation()
+  })
+
+  // Búsqueda
+  const liveSearch = debounce(() => {
+    barraDeBusqueda()
+  }, 400)
+
+  searchInput.addEventListener("input", () => {
+    hayTextoBusqueda = searchInput.value.trim() !== ""
+    autoUpdate = !hayTextoBusqueda
+    liveSearch()
+  })
+
+  searchInput.addEventListener("blur", () => {
+    const currentValue = searchInput.value.trim()
+    if (currentValue !== "") {
+      localStorage.setItem("searchValue", currentValue)
+      hayTextoBusqueda = true
+      autoUpdate = false
+    } else {
+      localStorage.removeItem("searchValue")
+      hayTextoBusqueda = false
+      autoUpdate = true
+    }
+  })
+
+  searchInput.addEventListener("focus", () => {
+    if (searchInput.value.trim() !== "") {
+      hayTextoBusqueda = true
+      autoUpdate = false
+    }
+  })
+
+  // Botones
+  showAllButton.addEventListener("click", () => {
+    console.log("Botón mostrar todos clickeado")
+    searchInput.value = ""
+    valores = ""
+    hayTextoBusqueda = false
+    autoUpdate = true
+    localStorage.removeItem("searchValue")
+    limpiarError()
+    cargarTabla(valores)
+  })
+
+  exportarButton.addEventListener("click", () => {
+    if (exportarButton.disabled) {
+      mostrarError("No hay datos disponibles para exportar.")
+      return
+    }
+    exportData(datosActuales)
+  })
+
   refreshButton.addEventListener("click", refrescarTabla)
 
-  window.addEventListener("beforeunload", () => {
+  // Eventos de teclado
+  document.addEventListener("keypress", (event) => {
+    var searchInputFocused = document.activeElement === searchInput
+    if (event.key === "Enter" && searchInputFocused) {
+      barraDeBusqueda()
+    }
+  })
+
+  // Eventos de selección
+  document.addEventListener("selectionchange", () => {
+    const selection = document.getSelection()
+    if (selection && selection.toString().length > 0) {
+      autoUpdate = false
+    } else if (!hayTextoBusqueda) {
+      autoUpdate = true
+    }
+  })
+
+  // Eventos de formulario
+  document.addEventListener("submit", (e) => {
     const currentValue = searchInput.value.trim()
     if (currentValue !== "") {
       localStorage.setItem("searchValue", currentValue)
     }
   })
 
-  window.addEventListener("pagehide", () => {
-    const currentValue = searchInput.value.trim()
-    if (currentValue !== "") {
-      localStorage.setItem("searchValue", currentValue)
-    }
-  })
-
+  // Eventos de navegación
   const navItems = document.querySelectorAll(".sidebar-nav li")
 
   navItems.forEach((item) => {
@@ -1142,7 +1290,25 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   })
 
-  // Manejo móvil
+  // Eventos de ventana
+  window.addEventListener("beforeunload", () => {
+    const currentValue = searchInput.value.trim()
+    if (currentValue !== "") {
+      localStorage.setItem("searchValue", currentValue)
+    }
+  })
+
+  window.addEventListener("pagehide", () => {
+    const currentValue = searchInput.value.trim()
+    if (currentValue !== "") {
+      localStorage.setItem("searchValue", currentValue)
+    }
+  })
+
+  // ============================================================================
+  // MANEJO MÓVIL
+  // ============================================================================
+
   if (window.innerWidth <= 576) {
     sidebarToggle.addEventListener("click", (event) => {
       event.stopPropagation()
@@ -1173,5 +1339,126 @@ document.addEventListener("DOMContentLoaded", () => {
         overlay.classList.remove("active-mobile")
       }
     })
+  }
+
+  // ============================================================================
+  // INTERVALOS Y ACTUALIZACIONES AUTOMÁTICAS
+  // ============================================================================
+
+  // Verificar periódicamente la validez del token y actualizar automáticamente
+  setInterval(async () => {
+    hayTextoBusqueda = searchInput.value.trim() !== ""
+
+    if (autoUpdate && !hayTextoBusqueda) {
+      console.log("Actualizando automáticamente...")
+      // Verificar token antes de actualizar
+      const isValid = await verifyTokenValidity()
+      if (isValid) {
+        cargarTabla(valores)
+      }
+    }
+  }, 30000) // Verificar cada 30 segundos
+
+  // Actualización más frecuente de reportes
+  setInterval(() => {
+    if (autoUpdate && !hayTextoBusqueda) {
+      cargarTabla(valores)
+    }
+  }, 3000)
+
+  // Modal para mostrar formulario completado
+  async function mostrarModalFormulario(reporteId, botonAccion) {
+    // Remover modal existente si existe
+    const modalExistente = document.getElementById("modal-formulario")
+    if (modalExistente) {
+      modalExistente.remove()
+    }
+
+    // Crear overlay para el fondo
+    let overlay = document.getElementById("modal-formulario-overlay")
+    if (!overlay) {
+      overlay = document.createElement("div")
+      overlay.id = "modal-formulario-overlay"
+      overlay.style.position = "fixed"
+      overlay.style.top = "0"
+      overlay.style.left = "0"
+      overlay.style.width = "100vw"
+      overlay.style.height = "100vh"
+      overlay.style.background = "rgba(0,0,0,0.35)"
+      overlay.style.zIndex = "10000"
+      overlay.style.display = "flex"
+      overlay.style.alignItems = "center"
+      overlay.style.justifyContent = "center"
+      document.body.appendChild(overlay)
+    }
+
+    // Crear modal
+    const modal = document.createElement("div")
+    modal.id = "modal-formulario"
+    modal.className = "modal-formulario"
+    modal.style.background = "#fff"
+    modal.style.borderRadius = "12px"
+    modal.style.boxShadow = "0 8px 32px rgba(0,0,0,0.25)"
+    modal.style.maxWidth = "420px"
+    modal.style.width = "95%"
+    modal.style.maxHeight = "90vh" // Limita la altura máxima
+    modal.style.overflowY = "auto" // Scroll si se excede la altura
+    modal.style.padding = "0"
+    modal.style.position = "relative"
+    modal.style.zIndex = "10001"
+    modal.style.animation = "modalFadeIn 0.2s"
+
+    // Mostrar cargando mientras se obtiene el formulario
+    modal.innerHTML = `
+      <div class="modal-content-formulario" style="padding:0;">
+        <div class="modal-header-formulario" style="background:#800000;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between;">
+          <h4 style="margin:0;font-size:1.15rem;font-weight:600;">Formulario del Reporte</h4>
+          <button class="modal-close" style="background:none;border:none;color:#fff;font-size:1.7rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div class="modal-body-formulario" style="padding:24px;">
+          <div id="formulario-loading" style="text-align:center;font-size:1.1rem;">Cargando formulario...</div>
+        </div>
+      </div>
+    `
+    overlay.appendChild(modal)
+
+    // Cerrar modal
+    const closeButton = modal.querySelector(".modal-close")
+    closeButton.addEventListener("click", () => {
+      overlay.remove()
+    })
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) overlay.remove()
+    })
+
+    // Obtener datos del formulario
+    try {
+      const response = await authenticatedFetch(`${API_URL}/tasks/${reporteId}/formulario`)
+      if (!response) {
+        modal.querySelector("#formulario-loading").textContent = "No se pudo obtener el formulario."
+        return
+      }
+      const data = await response.json()
+      // Renderizar los datos del formulario (sin el id)
+      modal.querySelector(".modal-body-formulario").innerHTML = `
+        <table class="formulario-table" style="width:100%;border-collapse:collapse;">
+          <tr><th style="text-align:left;padding:8px 6px;color:#800000;">Nombre(s)</th><td style="padding:8px 6px;">${data.nombres || ""}</td></tr>
+          <tr><th style="text-align:left;padding:8px 6px;color:#800000;">Apellido paterno</th><td style="padding:8px 6px;">${data.apellido_paterno || ""}</td></tr>
+          <tr><th style="text-align:left;padding:8px 6px;color:#800000;">Apellido materno</th><td style="padding:8px 6px;">${data.apellido_materno || ""}</td></tr>
+          <tr><th style="text-align:left;padding:8px 6px;color:#800000;">Código UDG</th><td style="padding:8px 6px;">${data.codigo_udg || ""}</td></tr>
+          <tr><th style="text-align:left;padding:8px 6px;color:#800000;">Fecha nacimiento</th><td style="padding:8px 6px;">${data.fecha_nacimiento || ""}</td></tr>
+          <tr>
+            <th style="text-align:left;padding:8px 6px;color:#800000;vertical-align:top;">Descripción detallada</th>
+            <td style="padding:8px 6px;">
+              <div style="max-height:120px;overflow:auto;white-space:pre-wrap;">${data.descripcion_detallada || ""}</div>
+            </td>
+          </tr>
+          <tr><th style="text-align:left;padding:8px 6px;color:#800000;">Fecha creación</th><td style="padding:8px 6px;">${data.fecha_creacion || ""}</td></tr>
+          <tr><th style="text-align:left;padding:8px 6px;color:#800000;">Hora creación</th><td style="padding:8px 6px;">${data.hora_creacion || ""}</td></tr>
+        </table>
+      `
+    } catch (error) {
+      modal.querySelector("#formulario-loading").textContent = "Error al cargar el formulario."
+    }
   }
 })
