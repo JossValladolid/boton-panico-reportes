@@ -632,7 +632,7 @@ table {
 }
 
 .section h4 {
-  color: var(--dark-gray);
+  color: var(--primary-color);
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
 }
@@ -705,7 +705,7 @@ table {
 }
 
 .legal-content h4 {
-  color: var(--dark-gray);
+  color: var(--primary-color);
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
 }
