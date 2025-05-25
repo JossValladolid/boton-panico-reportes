@@ -1,35 +1,95 @@
 const API_URL = "http://localhost:8000"
-const XLSX = window.XLSX // Declare the XLSX variable
 
-// Protección del panel de administración
-;(function verificarAdmin() {
+// Función centralizada para manejar peticiones con manejo de errores de autenticación
+async function authenticatedFetch(url, options = {}) {
+  const token = localStorage.getItem("access_token")
+  
+  if (!token) {
+    handleAuthError()
+    return null
+  }
+
+  const defaultOptions = {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  }
+
+  const finalOptions = { ...defaultOptions, ...options }
+
+  try {
+    const response = await fetch(url, finalOptions)
+    
+    // Manejar errores de autenticación de forma centralizada
+    if (response.status === 401 || response.status === 403) {
+      console.warn('Token expirado o inválido, cerrando sesión...')
+      handleAuthError()
+      return null
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    return response
+  } catch (error) {
+    console.error('Error en petición autenticada:', error)
+    throw error
+  }
+}
+
+// Función centralizada para manejar errores de autenticación
+function handleAuthError() {
+  localStorage.removeItem("access_token")
+  localStorage.removeItem("searchValue")
+  alert('Tu sesión ha expirado. Serás redirigido al login.')
+  window.location.href = "index.html"
+}
+
+// Función para verificar si el token sigue siendo válido
+async function verifyTokenValidity() {
+  try {
+    const response = await authenticatedFetch(`${API_URL}/me`)
+    return response !== null
+  } catch (error) {
+    console.error('Error verificando token:', error)
+    return false
+  }
+}
+
+// Protección del panel de administración mejorada
+async function verificarAdmin() {
   const token = localStorage.getItem("access_token")
 
   if (!token) {
     window.location.href = "index.html"
-    return
+    return false
   }
 
-  fetch(`${API_URL}/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error("Token inválido")
-      return res.json()
-    })
-    .then((user) => {
-      if (user.rol !== "admin") {
-        alert("Acceso denegado: no eres administrador")
-        localStorage.removeItem("access_token")
-        window.location.href = "admin-login.html"
-      }
-    })
-    .catch(() => {
+  try {
+    const response = await authenticatedFetch(`${API_URL}/me`)
+    if (!response) return false // Ya manejado por authenticatedFetch
+    
+    const user = await response.json()
+    if (user.rol !== "admin") {
+      alert("Acceso denegado: no eres administrador")
       localStorage.removeItem("access_token")
-      window.location.href = "index.html"
-    })
+      window.location.href = "admin-login.html"
+      return false
+    }
+    return true
+  } catch (error) {
+    console.error('Error al verificar admin:', error)
+    handleAuthError()
+    return false
+  }
+}
+
+// Ejecutar verificación de admin al cargar
+;(async function() {
+  await verificarAdmin()
 })()
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -46,6 +106,98 @@ document.addEventListener("DOMContentLoaded", () => {
   overlay.classList.add("overlay")
   document.body.appendChild(overlay)
 
+  // Variables globales
+  let valores = ""
+  let datosActuales = []
+  let autoUpdate = true
+  let hayTextoBusqueda = false
+
+  // NUEVA FUNCIÓN: Actualizar estado del botón de exportar
+  function actualizarEstadoBotonExportar() {
+    if (!datosActuales || datosActuales.length === 0) {
+      exportarButton.disabled = true
+      exportarButton.style.opacity = "0.5"
+      exportarButton.style.cursor = "not-allowed"
+      exportarButton.title = "No hay datos disponibles para exportar"
+    } else {
+      exportarButton.disabled = false
+      exportarButton.style.opacity = "1"
+      exportarButton.style.cursor = "pointer"
+      exportarButton.title = "Exportar datos a Excel"
+    }
+  }
+
+  // Inicializar el estado del botón de exportar
+  actualizarEstadoBotonExportar()
+
+  // NUEVA FUNCIONALIDAD: Manejo de secciones del sidebar
+  function initializeSections() {
+    const sidebarLinks = document.querySelectorAll('.sidebar-nav a[href^="#"]')
+    const sections = document.querySelectorAll("section[id]")
+
+    // Ocultar todas las secciones excepto la primera
+    sections.forEach((section, index) => {
+      if (index === 0) {
+        section.style.display = "block"
+      } else {
+        section.style.display = "none"
+      }
+    })
+
+    // Agregar event listeners a los enlaces del sidebar
+    sidebarLinks.forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault()
+
+        const targetId = link.getAttribute("href").substring(1)
+        const targetSection = document.getElementById(targetId)
+
+        if (targetSection) {
+          // Ocultar todas las secciones
+          sections.forEach((section) => {
+            section.style.display = "none"
+          })
+
+          // Mostrar la sección seleccionada
+          targetSection.style.display = "block"
+
+          // Actualizar estado activo en el sidebar
+          const sidebarItems = document.querySelectorAll(".sidebar-nav li")
+          sidebarItems.forEach((item) => {
+            item.classList.remove("active")
+          })
+
+          // Agregar clase activa al elemento padre (li)
+          link.parentElement.classList.add("active")
+
+          // Cerrar sidebar despues de seleccionar
+          sidebarVisible = false
+          sidebar.classList.add("collapsed")
+          sidebar.style.transform = "translateX(-100%)"
+          mainContent.classList.add("expanded")
+          mainContent.style.marginLeft = "0"
+          overlay.classList.remove("active")
+          sidebar.classList.remove("visible")
+
+          // Cerrar sidebar en móvil después de seleccionar
+          if (window.innerWidth <= 576) {
+            sidebarVisible = false
+            sidebar.classList.add("collapsed")
+            sidebar.style.transform = "translateX(-100%)"
+            mainContent.classList.add("expanded")
+            mainContent.style.marginLeft = "0"
+            overlay.classList.remove("active")
+            sidebar.classList.remove("visible")
+            overlay.classList.remove("active-mobile")
+          }
+        }
+      })
+    })
+  }
+
+  // Inicializar las secciones
+  initializeSections()
+
   // Funcionalidad del botón de cerrar sesión
   logoutButton.addEventListener("click", () => {
     if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
@@ -60,12 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let sidebarVisible = false
   sidebar.classList.add("collapsed")
   mainContent.classList.add("expanded")
-
-  // Variables globales
-  let valores = ""
-  let datosActuales = []
-  let autoUpdate = true
-  let hayTextoBusqueda = false
 
   // SISTEMA DE PERSISTENCIA CORREGIDO
   function inicializarBusqueda() {
@@ -159,6 +305,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const tablaContenedor = document.getElementById("reportes-table")
       tablaContenedor.textContent = ""
       mostrarError(`Error en la sintaxis de búsqueda: ${error.message}`)
+      // Actualizar estado del botón cuando hay error
+      datosActuales = []
+      actualizarEstadoBotonExportar()
     }
   }
 
@@ -400,14 +549,6 @@ document.addEventListener("DOMContentLoaded", () => {
         celda.className = "status status-cancelled"
       }
     }
-
-    // Eliminar la parte que deshabilita los botones
-    // if (campo === "acciones" || campo === "actions" || valor.includes("button") || valor.includes("btn")) {
-    //   const botones = celda.querySelectorAll(".action-btn, .action-button")
-    //   botones.forEach((boton) => {
-    //     boton.classList.add("disabled")
-    //   })
-    // }
   }
 
   function crearDropdownEstado(valorActual, taskId, tdElement) {
@@ -477,14 +618,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function actualizarEstadoTarea(taskId, nuevoEstado, selectElement, tdElement) {
-    const token = localStorage.getItem("access_token")
-
-    if (!token) {
-      mostrarError("Sesión expirada. Redirigiendo al login...")
-      setTimeout(() => (window.location.href = "index.html"), 2000)
-      return
-    }
-
     const tareaActual = datosActuales.find((t) => t.id == taskId)
     if (!tareaActual) {
       mostrarError("Tarea no encontrada.")
@@ -501,12 +634,8 @@ document.addEventListener("DOMContentLoaded", () => {
     selectElement.style.opacity = "0.6"
 
     try {
-      const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+      const response = await authenticatedFetch(`${API_URL}/tasks/${taskId}`, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           id: Number.parseInt(taskId),
           descripcion: descripcionLimpia,
@@ -514,23 +643,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }),
       })
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem("access_token")
-          throw new Error("Sesión expirada. Redirigiendo al login...")
-        }
-
-        const errores = {
-          400: "Datos inválidos para actualización",
-          403: "No tienes permisos para modificar esta tarea",
-          404: "Tarea no encontrada",
-          500: "Error interno del servidor",
-        }
-        throw new Error(errores[response.status] || `Error HTTP: ${response.status}`)
-      }
+      if (!response) return // Ya manejado por authenticatedFetch
 
       const tareaActualizada = await response.json()
       console.log("Tarea actualizada exitosamente:", tareaActualizada)
+      refrescarTabla()
 
       const indice = datosActuales.findIndex((t) => t.id == taskId)
       if (indice !== -1) {
@@ -568,11 +685,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log(`Estado de la tarea ${taskId} actualizado a ${nuevoEstado}`)
     } catch (error) {
       console.error("Error al actualizar estado:", error)
-      if (error.message.includes("Sesión expirada")) {
-        mostrarError(error.message)
-        setTimeout(() => (window.location.href = "index.html"), 2000)
-        return
-      }
 
       if (tareaActual) {
         selectElement.value = tareaActual.estado || "Activo"
@@ -705,9 +817,6 @@ document.addEventListener("DOMContentLoaded", () => {
         botonEliminar.textContent = "Eliminar"
         botonEliminar.classList.add("btn-eliminar")
 
-        // Solo deshabilitar el botón si está cancelado, NO si está completado
-        // Eliminar la verificación de disabled y permitir que el botón siempre funcione
-
         botonEliminar.addEventListener("click", () => {
           if (confirm(`¿Deseas eliminar el reporte con ID ${filaData.id}?`)) {
             eliminarReporte(filaData.id)
@@ -724,23 +833,21 @@ document.addEventListener("DOMContentLoaded", () => {
       tablaContenedor.innerHTML = ""
       tablaContenedor.appendChild(tabla)
       limpiarError()
+
+      // ACTUALIZAR: Actualizar estado del botón después de mostrar datos
+      datosActuales = datos
+      actualizarEstadoBotonExportar()
     } else {
       tablaContenedor.innerHTML = ""
       mostrarError("No se encontraron resultados para la búsqueda actual")
+      // ACTUALIZAR: Limpiar datos y actualizar botón cuando no hay resultados
+      datosActuales = []
+      actualizarEstadoBotonExportar()
     }
   }
 
-  function cargarTabla(busqueda) {
-    const token = localStorage.getItem("access_token")
+  async function cargarTabla(busqueda) {
     console.log("Cargando tabla con búsqueda:", busqueda)
-
-    if (!token) {
-      mostrarError("Sesión expirada. Redirigiendo al login...")
-      setTimeout(() => {
-        window.location.href = "index.html"
-      }, 2000)
-      return
-    }
 
     let url = `${API_URL}/search-advanced`
     if (busqueda && busqueda !== "") {
@@ -749,122 +856,100 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("URL de petición:", url)
 
-    fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((response) => {
-        console.log("Respuesta recibida:", response.status, response.statusText)
-        if (!response.ok) {
-          if (response.status === 401) {
-            localStorage.removeItem("access_token")
-            throw new Error("Sesión expirada. Redirigiendo al login...")
-          }
+    try {
+      const response = await authenticatedFetch(url)
+      if (!response) return // Ya manejado por authenticatedFetch
 
-          switch (response.status) {
-            case 400:
-              throw new Error("Solicitud incorrecta: parámetros de búsqueda inválidos")
-            case 403:
-              throw new Error("Acceso prohibido: no tiene permisos para realizar esta búsqueda")
-            case 404:
-              throw new Error("Recurso no encontrado: la URL de búsqueda es incorrecta")
-            case 500:
-              throw new Error("Error interno del servidor: por favor intente más tarde")
-            case 503:
-              throw new Error("Servicio no disponible: el servidor está en mantenimiento")
-            default:
-              throw new Error(`Error HTTP: ${response.status} ${response.statusText}`)
-          }
-        }
-        return response.json()
-      })
-      .then((data) => {
-        console.log("Datos recibidos:", data)
-        datosActuales = data
-        limpiarError()
+      const data = await response.json()
+      console.log("Datos recibidos:", data)
+      datosActuales = data
+      limpiarError()
 
-        if (Array.isArray(data) && data.length === 0) {
-          mostrarError("La búsqueda no produjo resultados. Intente con otros términos.")
-          const tablaContenedor = document.getElementById("reportes-table")
-          tablaContenedor.innerHTML = ""
-        } else {
-          mostrarJSONEnTabla(data)
-        }
-
-        if (busqueda && busqueda !== "") {
-          hayTextoBusqueda = true
-          autoUpdate = false
-        }
-      })
-      .catch((error) => {
-        console.error("Error en petición:", error)
-
-        if (error.message.includes("Sesión expirada")) {
-          mostrarError(error.message)
-          setTimeout(() => {
-            window.location.href = "index.html"
-          }, 2000)
-          return
-        }
-
-        if (!hayTextoBusqueda) {
-          valores = ""
-        }
-        datosActuales = []
-
-        if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
-          mostrarError(
-            "Error de conexión: No se pudo conectar con el servidor. Verifique su conexión a internet o si el servidor está funcionando.",
-          )
-        } else {
-          mostrarError(error.message || "Error desconocido al cargar los datos")
-        }
-
+      if (Array.isArray(data) && data.length === 0 && !searchInput.value.trim()) {
+        mostrarError("Por el momento no se ha generado ningun reporte.")
         const tablaContenedor = document.getElementById("reportes-table")
         tablaContenedor.innerHTML = ""
-      })
+        // ACTUALIZAR: Actualizar botón cuando no hay datos
+        actualizarEstadoBotonExportar()
+      } else if (Array.isArray(data) && data.length === 0) {
+        mostrarError("La búsqueda no produjo resultados. Intente con otros términos.")
+        const tablaContenedor = document.getElementById("reportes-table")
+        tablaContenedor.innerHTML = ""
+        // ACTUALIZAR: Actualizar botón cuando no hay resultados de búsqueda
+        actualizarEstadoBotonExportar()
+      } else {
+        mostrarJSONEnTabla(data)
+      }
+
+      if (busqueda && busqueda !== "") {
+        hayTextoBusqueda = true
+        autoUpdate = false
+      }
+    } catch (error) {
+      console.error("Error en petición:", error)
+
+      if (!hayTextoBusqueda) {
+        valores = ""
+      }
+      datosActuales = []
+      // ACTUALIZAR: Actualizar botón cuando hay error
+      actualizarEstadoBotonExportar()
+
+      if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
+        mostrarError(
+          "Error de conexión: No se pudo conectar con el servidor. Verifique su conexión a internet o si el servidor está funcionando.",
+        )
+      } else {
+        mostrarError(error.message || "Error desconocido al cargar los datos")
+      }
+
+      const tablaContenedor = document.getElementById("reportes-table")
+      tablaContenedor.innerHTML = ""
+    }
   }
 
-  // Actualización automática cada 3 segundos
-  setInterval(() => {
+  // Verificar periódicamente la validez del token y actualizar automáticamente
+  setInterval(async () => {
     hayTextoBusqueda = searchInput.value.trim() !== ""
 
     if (autoUpdate && !hayTextoBusqueda) {
       console.log("Actualizando automáticamente...")
+      // Verificar token antes de actualizar
+      const isValid = await verifyTokenValidity()
+      if (isValid) {
+        cargarTabla(valores)
+      }
+    }
+  }, 30000) // Verificar cada 30 segundos
+
+  // Actualización más frecuente de reportes
+  setInterval(() => {
+    if (autoUpdate && !hayTextoBusqueda) {
       cargarTabla(valores)
     }
   }, 3000)
 
-  function eliminarReporte(id) {
-    const token = localStorage.getItem("access_token")
-    if (!token) {
-      mostrarError("Sesión expirada.")
-      return
+  async function eliminarReporte(id) {
+    try {
+      const response = await authenticatedFetch(`${API_URL}/tasks/${id}`, {
+        method: "DELETE"
+      })
+      
+      if (!response) return // Ya manejado por authenticatedFetch
+      
+      alert("Reporte eliminado exitosamente")
+      cargarTabla(searchInput.value.trim() ? parsearConsulta(searchInput.value.trim()) : "")
+    } catch (error) {
+      console.error("Error al eliminar:", error)
+      mostrarError("No se pudo eliminar el reporte: " + error.message)
     }
-
-    fetch(`${API_URL}/tasks/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Error al eliminar reporte")
-        alert("Reporte eliminado exitosamente")
-        cargarTabla(searchInput.value.trim() ? parsearConsulta(searchInput.value.trim()) : "")
-      })
-      .catch((err) => {
-        console.error("Error al eliminar:", err)
-        mostrarError("No se pudo eliminar el reporte: " + err.message)
-      })
   }
 
   // Funciones de exportar y refresh
   function exportData(datosActuales) {
+    // ACTUALIZAR: Verificación mejorada con mensaje más claro
     if (!datosActuales || datosActuales.length === 0) {
-      mostrarError("No hay datos disponibles para exportar. Realice una búsqueda válida primero.")
+      mostrarError("No hay datos disponibles para exportar. Cargue datos en la tabla primero.")
       return
     }
 
@@ -879,24 +964,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
       XLSX.writeFile(workbook, nombreArchivo)
       limpiarError()
+      console.log(`Archivo exportado exitosamente: ${nombreArchivo}`)
     } catch (error) {
       console.error("Error al exportar datos:", error)
       mostrarError("Error al exportar: " + (error.message || "No se pudo generar el archivo Excel"))
     }
   }
 
+  // ACTUALIZAR: Event listener mejorado para el botón de exportar
   exportarButton.addEventListener("click", () => {
+    if (exportarButton.disabled) {
+      mostrarError("No hay datos disponibles para exportar.")
+      return
+    }
     exportData(datosActuales)
   })
 
-  refreshButton.addEventListener("click", () => {
+  function refrescarTabla() {
     const valorBusqueda = searchInput.value.trim()
     if (valorBusqueda) {
       cargarTabla(parsearConsulta(valorBusqueda))
     } else {
       cargarTabla("")
     }
-  })
+  }
+
+  refreshButton.addEventListener("click", refrescarTabla)
 
   window.addEventListener("beforeunload", () => {
     const currentValue = searchInput.value.trim()
@@ -910,6 +1003,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (currentValue !== "") {
       localStorage.setItem("searchValue", currentValue)
     }
+  })
+
+  const navItems = document.querySelectorAll(".sidebar-nav li")
+
+  navItems.forEach((item) => {
+    item.addEventListener("mouseenter", () => {
+      const activeItem = document.querySelector(".sidebar-nav li.active")
+      if (activeItem && activeItem !== item) {
+        activeItem.classList.add("suppress-border")
+      }
+    })
+
+    item.addEventListener("mouseleave", () => {
+      const activeItem = document.querySelector(".sidebar-nav li.active")
+      if (activeItem) {
+        activeItem.classList.remove("suppress-border")
+      }
+    })
   })
 
   // Manejo móvil

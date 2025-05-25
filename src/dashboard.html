@@ -22,51 +22,20 @@
 
         <!-- Sidebar -->
         <aside class="sidebar">
-            <nav class="sidebar-nav">
-                <ul>
-                    <li class="active">
-                        <a href="dashboard.html">
-                            <i class="fas fa-tachometer-alt"></i>
-                            <span>Inicio</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span>Reportes</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#">
-                            <i class="fas fa-users"></i>
-                            <span>Usuarios</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#">
-                            <i class="fas fa-chart-bar"></i>
-                            <span>Estadísticas</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#">
-                            <i class="fas fa-cog"></i>
-                            <span>Configuración</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a>
-                            <i class="fas fa-minus-circle"></i>
-                            <span id="logout-button">Cerrar Sesion</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
+            <ul class="sidebar-nav">
+                <li class="active"><a href="#inicio">Inicio</a></li>
+                <li><a href="#preguntas-frecuentes">Preguntas frecuentes</a></li>
+                <li><a href="#avisos-de-privacidad">Avisos de privacidad</a></li>
+                <li><a href="#terminos-y-condiciones">Terminos y condiciones</a></li>
+                <li><a href="#acerca-de">Acerca de</span></a></li>
+                <li><a href="#contactanos">Contactanos</a></li>
+                <li class="logout-item"><a id="logout-button" class="logout-button">Cerrar Sesion</a></li>
+            </ul>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
-            <section class="dashboard">
+            <section id="inicio" class="dashboard">
                 <div class="dashboard-header">
                     <h2>Panel de Reportes</h2>
                     <div class="actions">
@@ -93,6 +62,218 @@
                     </table>
                 </div>
             </section>
+
+                    <!-- Sección Preguntas Frecuentes -->
+        <section id="preguntas-frecuentes" class="section">
+            <div class="section-content">
+                <h2>Preguntas Frecuentes</h2>
+                
+                <div class="accordion">
+                    <div class="accordion-item">
+                        <div class="accordion-header">¿Qué es ISAA?</div>
+                        <div class="accordion-content">
+                            <p>ISAA es un sistema de reporte de emergencias diseñado para la comunidad universitaria. Permite enviar alertas rápidas a mediadores capacitados cuando te encuentres en una situación de riesgo o presencies algún incidente que requiera atención.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <div class="accordion-header">¿Quién puede ver mi reporte?</div>
+                        <div class="accordion-content">
+                            <p>Solo los mediadores designados por la universidad tienen acceso a los reportes enviados. Tu información personal está protegida y se maneja con estricta confidencialidad.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <div class="accordion-header">¿Es obligatorio poner mi nombre?</div>
+                        <div class="accordion-content">
+                            <p>No, el campo de nombre es opcional. Sin embargo, incluir tu nombre puede facilitar el seguimiento de tu caso. El código de estudiante sí es obligatorio para verificar que perteneces a la comunidad universitaria.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <div class="accordion-header">¿Qué tipo de situaciones puedo reportar?</div>
+                        <div class="accordion-content">
+                            <p>Puedes reportar cualquier situación que consideres una emergencia o que requiera atención inmediata: acoso, violencia, situaciones de riesgo, emergencias médicas, entre otras.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <div class="accordion-header">¿Cuánto tiempo tarda en procesarse mi reporte?</div>
+                        <div class="accordion-content">
+                            <p>Los reportes se envían de forma inmediata a nuestro equipo de mediadores, quienes evaluarán la situación y tomarán las acciones necesarias con la mayor rapidez posible.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Avisos de privacidad -->
+        <section id="avisos-de-privacidad" class="section">
+            <div class="section-content">
+                <h2>Avisos de privacidad</h2>
+                
+                <div class="legal-content">
+                    <h3>Términos de Uso</h3>
+                    <p>Última actualización: Abril 2025</p>
+                    
+                    <h4>1. Aceptación de términos</h4>
+                    <p>Al utilizar ISAA, aceptas estos términos y condiciones en su totalidad. Si no estás de acuerdo con ellos, no debes utilizar este servicio.</p>
+                    
+                    <h4>2. Descripción del servicio</h4>
+                    <p>ISAA es un sistema de reporte de emergencias para uso exclusivo de la comunidad universitaria. Su propósito es facilitar la comunicación rápida de situaciones de riesgo o emergencia a los mediadores universitarios designados.</p>
+                    
+                    <h4>3. Uso adecuado</h4>
+                    <p>Te comprometes a:</p>
+                    <ul>
+                        <li>Utilizar el sistema únicamente para reportar situaciones genuinas que requieran atención</li>
+                        <li>Proporcionar información veraz y precisa en tus reportes</li>
+                        <li>No utilizar el sistema para enviar contenido ofensivo, difamatorio o falso</li>
+                        <li>No intentar acceder a información de otros usuarios o del sistema mismo</li>
+                    </ul>
+                    
+                    <h4>4. Reportes falsos</h4>
+                    <p>El envío deliberado de reportes falsos constituye una falta grave que puede resultar en sanciones disciplinarias según el reglamento universitario.</p>
+                    
+                    <h4>5. Limitación de responsabilidad</h4>
+                    <p>La universidad hace esfuerzos razonables para mantener el sistema disponible y responder a los reportes con prontitud, pero no garantiza:</p>
+                    <ul>
+                        <li>Disponibilidad ininterrumpida del servicio</li>
+                        <li>Tiempos específicos de respuesta</li>
+                        <li>Resolución de todos los incidentes reportados</li>
+                    </ul>
+                    
+                    <h4>6. Modificaciones</h4>
+                    <p>La universidad se reserva el derecho de modificar estos términos en cualquier momento. Los cambios entrarán en vigor inmediatamente después de su publicación en esta plataforma.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección Términos y Condiciones -->
+        <section id="terminos-y-condiciones" class="section">
+            <div class="section-content">
+                <h2>Términos y Condiciones</h2>
+                
+                <div class="legal-content">
+                    <h3>Términos de Uso</h3>
+                    <p>Última actualización: Abril 2025</p>
+                    
+                    <h4>1. Aceptación de términos</h4>
+                    <p>Al utilizar ISAA, aceptas estos términos y condiciones en su totalidad. Si no estás de acuerdo con ellos, no debes utilizar este servicio.</p>
+                    
+                    <h4>2. Descripción del servicio</h4>
+                    <p>ISAA es un sistema de reporte de emergencias para uso exclusivo de la comunidad universitaria. Su propósito es facilitar la comunicación rápida de situaciones de riesgo o emergencia a los mediadores universitarios designados.</p>
+                    
+                    <h4>3. Uso adecuado</h4>
+                    <p>Te comprometes a:</p>
+                    <ul>
+                        <li>Utilizar el sistema únicamente para reportar situaciones genuinas que requieran atención</li>
+                        <li>Proporcionar información veraz y precisa en tus reportes</li>
+                        <li>No utilizar el sistema para enviar contenido ofensivo, difamatorio o falso</li>
+                        <li>No intentar acceder a información de otros usuarios o del sistema mismo</li>
+                    </ul>
+                    
+                    <h4>4. Reportes falsos</h4>
+                    <p>El envío deliberado de reportes falsos constituye una falta grave que puede resultar en sanciones disciplinarias según el reglamento universitario.</p>
+                    
+                    <h4>5. Limitación de responsabilidad</h4>
+                    <p>La universidad hace esfuerzos razonables para mantener el sistema disponible y responder a los reportes con prontitud, pero no garantiza:</p>
+                    <ul>
+                        <li>Disponibilidad ininterrumpida del servicio</li>
+                        <li>Tiempos específicos de respuesta</li>
+                        <li>Resolución de todos los incidentes reportados</li>
+                    </ul>
+                    
+                    <h4>6. Modificaciones</h4>
+                    <p>La universidad se reserva el derecho de modificar estos términos en cualquier momento. Los cambios entrarán en vigor inmediatamente después de su publicación en esta plataforma.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección Acerca de -->
+        <section id="acerca-de" class="section">
+            <div class="section-content">
+                <h2>Acerca de Nosotros</h2>
+                
+                <div class="about-container">
+                    <div class="about-text">
+                        <h3>Nuestra misión</h3>
+                        <p>ISAA nació con el objetivo de crear un entorno universitario más seguro y protegido para todos los miembros de nuestra comunidad. Creemos firmemente que cada estudiante tiene derecho a sentirse seguro en su campus y contar con herramientas efectivas para solicitar ayuda cuando lo necesite.</p>
+                        
+                        <h3>¿Cómo funciona?</h3>
+                        <p>Nuestro sistema permite que cualquier estudiante, desde cualquier dispositivo con acceso a internet, pueda enviar un reporte inmediato a los mediadores capacitados de la universidad. Estos profesionales evalúan la situación y movilizan los recursos necesarios para brindar asistencia.</p>
+                        
+                        <h3>Nuestro equipo</h3>
+                        <p>ISAA está respaldado por un equipo multidisciplinario que incluye:</p>
+                        <ul>
+                            <li>Mediadores profesionales con formación en resolución de conflictos</li>
+                            <li>Personal de seguridad universitaria</li>
+                            <li>Psicólogos y consejeros estudiantiles</li>
+                            <li>Equipo técnico para mantener la plataforma funcionando de manera óptima</li>
+                        </ul>
+                        
+                        <h3>Historia</h3>
+                        <p>Este proyecto fue iniciado en 2024 como respuesta a la necesidad de crear canales directos y eficientes para reportar situaciones de emergencia en el campus. Desde entonces, hemos atendido más de 200 casos y continuamos mejorando nuestros protocolos y tecnología.</p>
+                    </div>
+                    
+                    <div class="about-stats">
+                        <div class="stat-item">
+                            <h4>90%</h4>
+                            <p>de satisfacción de usuarios con el servicio</p>
+                        </div>
+                        <div class="stat-item">
+                            <h4>< 5 min</h4>
+                            <p>tiempo promedio de respuesta</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección Contáctanos -->
+        <section id="contactanos" class="section">
+            <div class="section-content">
+                <h2>Contáctanos</h2>
+                
+                <div class="contact-container">
+                    <div class="contact-info">
+                        <h3>Información de contacto</h3>
+                        <p><i class="fas fa-envelope"></i> Email: admin@isaa.com</p>
+                        <p><i class="fas fa-phone"></i> Teléfono: No disponible por el momento</p>
+                        <p><i class="fas fa-clock"></i> Horario: Lunes a Viernes, 7:00 AM - 7:00 PM</p>
+                        <p><i class="fas fa-map-marker-alt"></i> Ubicación: Escuela Politécnica de Guadalajara</p>
+                    </div>
+                    
+                    <div class="contact-form">
+                        <h3>Envíanos un mensaje</h3>
+                        <form id="contactForm">
+                            <div class="form-group">
+                                <label for="contactNombre">Nombre:</label>
+                                <input type="text" id="contactNombre" name="contactNombre" placeholder="Tu nombre" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="contactEmail">Correo electrónico:</label>
+                                <input type="email" id="contactEmail" name="contactEmail" placeholder="tu@email.com" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="contactAsunto">Asunto:</label>
+                                <input type="text" id="contactAsunto" name="contactAsunto" placeholder="Asunto de tu mensaje" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="contactMensaje">Mensaje:</label>
+                                <textarea id="contactMensaje" name="contactMensaje" placeholder="Escribe tu mensaje aquí" rows="5" required></textarea>
+                            </div>
+                            
+                            <button type="submit" class="submit-button">Enviar mensaje</button>
+                            <span id="contactExito" class="success-message"></span>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         </main>
     </div>
 
