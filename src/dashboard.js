@@ -1,17 +1,16 @@
-// ============================================================================
-// CONFIGURACIÓN Y CONSTANTES
-// ============================================================================
-
 const API_URL = "http://localhost:8000"
 
 // ============================================================================
-// FUNCIONES DE CARGA DE LIBRERÍA XLSX
+// 📦 FUNCIONES DE CARGA DE LIBRERÍAS EXTERNAS
 // ============================================================================
 
-// Función para cargar XLSX dinámicamente si no está disponible
+/**
+ * Carga la librería XLSX para exportación de archivos Excel
+ * @returns {Promise} Promise que resuelve cuando XLSX está disponible
+ */
 function loadXLSX() {
   return new Promise((resolve, reject) => {
-    // Si XLSX ya está disponible, resolver inmediatamente
+    // Si XLSX ya está cargado, resolver inmediatamente
     if (window.XLSX) {
       resolve(window.XLSX)
       return
@@ -20,6 +19,7 @@ function loadXLSX() {
     // Crear script tag para cargar XLSX desde CDN
     const script = document.createElement("script")
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+
     script.onload = () => {
       if (window.XLSX) {
         console.log("XLSX cargado exitosamente")
@@ -28,24 +28,32 @@ function loadXLSX() {
         reject(new Error("Error cargando XLSX"))
       }
     }
+
     script.onerror = () => reject(new Error("Error cargando XLSX desde CDN"))
     document.head.appendChild(script)
   })
 }
 
 // ============================================================================
-// FUNCIONES DE AUTENTICACIÓN Y SEGURIDAD
+// 🔐 FUNCIONES DE AUTENTICACIÓN Y SEGURIDAD
 // ============================================================================
 
-// Función centralizada para manejar peticiones con manejo de errores de autenticación
+/**
+ * Realiza peticiones HTTP autenticadas con token JWT
+ * @param {string} url - URL de la petición
+ * @param {Object} options - Opciones de la petición (headers, method, body, etc.)
+ * @returns {Promise<Response|null>} Response de la petición o null si hay error de auth
+ */
 async function authenticatedFetch(url, options = {}) {
   const token = localStorage.getItem("access_token")
 
+  // Si no hay token, manejar error de autenticación
   if (!token) {
     handleAuthError()
     return null
   }
 
+  // Configurar headers por defecto con el token
   const defaultOptions = {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -59,7 +67,7 @@ async function authenticatedFetch(url, options = {}) {
   try {
     const response = await fetch(url, finalOptions)
 
-    // Manejar errores de autenticación de forma centralizada
+    // Si el token es inválido o expiró
     if (response.status === 401 || response.status === 403) {
       console.warn("Token expirado o inválido, cerrando sesión...")
       handleAuthError()
@@ -77,7 +85,9 @@ async function authenticatedFetch(url, options = {}) {
   }
 }
 
-// Función centralizada para manejar errores de autenticación
+/**
+ * Maneja errores de autenticación limpiando datos y redirigiendo al login
+ */
 function handleAuthError() {
   localStorage.removeItem("access_token")
   localStorage.removeItem("searchValue")
@@ -85,7 +95,10 @@ function handleAuthError() {
   window.location.href = "index.html"
 }
 
-// Función para verificar si el token sigue siendo válido
+/**
+ * Verifica si el token actual es válido
+ * @returns {Promise<boolean>} true si el token es válido, false si no
+ */
 async function verifyTokenValidity() {
   try {
     const response = await authenticatedFetch(`${API_URL}/me`)
@@ -96,7 +109,10 @@ async function verifyTokenValidity() {
   }
 }
 
-// Protección del panel de administración mejorada
+/**
+ * Verifica que el usuario actual sea administrador
+ * @returns {Promise<boolean>} true si es admin, false si no
+ */
 async function verificarAdmin() {
   const token = localStorage.getItem("access_token")
 
@@ -107,7 +123,7 @@ async function verificarAdmin() {
 
   try {
     const response = await authenticatedFetch(`${API_URL}/me`)
-    if (!response) return false // Ya manejado por authenticatedFetch
+    if (!response) return false
 
     const user = await response.json()
     if (user.rol !== "admin") {
@@ -123,16 +139,22 @@ async function verificarAdmin() {
     return false
   }
 }
-// Ejecutar verificación de admin al cargar
+// Ejecutar verificación de admin al cargar la página
 ;(async () => {
   await verificarAdmin()
 })()
 
 // ============================================================================
-// FUNCIONES DE VERIFICACIÓN DE ESTADO DE REPORTES
+// 📊 FUNCIONES DE VERIFICACIÓN DE ESTADO DE REPORTES
 // ============================================================================
 
+/**
+ * Verifica si un reporte está cancelado
+ * @param {Object} reporte - Objeto del reporte
+ * @returns {boolean} true si está cancelado, false si no
+ */
 function estaReporteCancelado(reporte) {
+  // Verificar por campo 'status'
   if (reporte.status && typeof reporte.status === "string") {
     const statusLower = reporte.status.toLowerCase()
     if (
@@ -145,10 +167,12 @@ function estaReporteCancelado(reporte) {
     }
   }
 
+  // Verificar por campos booleanos
   if (reporte.cancelled === true || reporte.cancelado === true) {
     return true
   }
 
+  // Verificar por campo 'estado'
   if (reporte.estado && typeof reporte.estado === "string") {
     const estadoLower = reporte.estado.toLowerCase()
     if (estadoLower.includes("cancelado") || estadoLower.includes("inactivo")) {
@@ -159,6 +183,11 @@ function estaReporteCancelado(reporte) {
   return false
 }
 
+/**
+ * Verifica si un reporte está completado
+ * @param {Object} reporte - Objeto del reporte
+ * @returns {boolean} true si está completado, false si no
+ */
 function estaReporteCompletado(reporte) {
   if (reporte.status && typeof reporte.status === "string") {
     const statusLower = reporte.status.toLowerCase()
@@ -177,6 +206,11 @@ function estaReporteCompletado(reporte) {
   return false
 }
 
+/**
+ * Verifica si un reporte está pendiente
+ * @param {Object} reporte - Objeto del reporte
+ * @returns {boolean} true si está pendiente, false si no
+ */
 function estaReportePendiente(reporte) {
   if (reporte.status && typeof reporte.status === "string") {
     const statusLower = reporte.status.toLowerCase()
@@ -196,9 +230,48 @@ function estaReportePendiente(reporte) {
 }
 
 // ============================================================================
-// INICIALIZACIÓN DEL DOM Y EVENT LISTENERS
+// 🎭 FUNCIONES DE MODAL Y UI GENERALES
 // ============================================================================
 
+/**
+ * Muestra un modal por su ID
+ * @param {string} modalId - ID del modal a mostrar
+ */
+function showModal(modalId) {
+  disableBodyScroll()
+  document.getElementById(modalId).style.display = "block"
+}
+
+/**
+ * Oculta un modal por su ID
+ * @param {string} modalId - ID del modal a ocultar
+ */
+function hideModal(modalId) {
+  enableBodyScroll()
+  document.getElementById(modalId).style.display = "none"
+}
+
+/**
+ * Deshabilita el scroll del body (para modales)
+ */
+function disableBodyScroll() {
+  document.body.classList.add("modal-open")
+}
+
+/**
+ * Habilita el scroll del body
+ */
+function enableBodyScroll() {
+  document.body.classList.remove("modal-open")
+}
+
+// ============================================================================
+// 🎯 INICIALIZACIÓN PRINCIPAL Y EVENT LISTENERS
+// ============================================================================
+
+/**
+ * Función principal que se ejecuta cuando el DOM está listo
+ */
 document.addEventListener("DOMContentLoaded", async () => {
   // ============================================================================
   // CARGAR XLSX AL INICIO
@@ -209,11 +282,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("XLSX está listo para usar")
   } catch (error) {
     console.error("Error cargando XLSX:", error)
-    // Continuar con la carga de la aplicación aunque XLSX falle
   }
 
   // ============================================================================
-  // ELEMENTOS DEL DOM
+  // REFERENCIAS A ELEMENTOS DEL DOM
   // ============================================================================
 
   const sidebar = document.querySelector(".sidebar")
@@ -225,12 +297,46 @@ document.addEventListener("DOMContentLoaded", async () => {
   const refreshButton = document.getElementById("refresh-button")
   const logoutButton = document.getElementById("logout-button")
   const errorFetchElement = document.getElementById("errorFetch")
+
+  // Crear overlay para el sidebar
   const overlay = document.createElement("div")
   overlay.classList.add("overlay")
   document.body.appendChild(overlay)
 
   // ============================================================================
-  // VARIABLES LOCALES
+  // CONFIGURACIÓN DEL BOTÓN DE AYUDA
+  // ============================================================================
+
+  const helpButton = document.getElementById("help-button")
+  const helpModal = document.getElementById("help-modal")
+  const closeHelpModal = document.querySelector(".close-help-modal")
+
+  // Event listener para abrir el modal de ayuda
+  if (helpButton) {
+    helpButton.addEventListener("click", (e) => {
+      e.preventDefault()
+      showModal("help-modal")
+    })
+  }
+
+  // Event listener para cerrar el modal de ayuda
+  if (closeHelpModal) {
+    closeHelpModal.addEventListener("click", () => {
+      hideModal("help-modal")
+    })
+  }
+
+  // Cerrar modal de ayuda al hacer click fuera
+  if (helpModal) {
+    helpModal.addEventListener("click", (e) => {
+      if (e.target === helpModal) {
+        hideModal("help-modal")
+      }
+    })
+  }
+
+  // ============================================================================
+  // VARIABLES GLOBALES DE ESTADO
   // ============================================================================
 
   let valores = ""
@@ -239,25 +345,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   let hayTextoBusqueda = false
 
   // ============================================================================
-  // FUNCIONES DE MODAL DE CANCELACIÓN
+  // 🗑️ FUNCIONES DE MODAL DE CANCELACIÓN DE REPORTES
   // ============================================================================
 
-  // Crear modal de cancelación
+  /**
+   * Crea y muestra el modal para cancelar un reporte
+   * @param {number} reporteId - ID del reporte a cancelar
+   * @param {HTMLElement} botonAccion - Elemento botón que activó el modal (para posicionamiento)
+   */
   function crearModalCancelacion(reporteId, botonAccion) {
-    // Remover modal existente si existe
+    // Remover modal existente si lo hay
     const modalExistente = document.getElementById("modal-cancelacion")
     if (modalExistente) {
       modalExistente.remove()
     }
 
-    // Crear modal
+    // Crear nuevo modal
     const modal = document.createElement("div")
     modal.id = "modal-cancelacion"
     modal.className = "modal-cancelacion"
 
-    // Obtener posición del botón de acción
+    // Obtener posición del botón para posicionar el modal
     const rect = botonAccion.getBoundingClientRect()
 
+    // HTML del modal
     modal.innerHTML = `
       <div class="modal-content-cancelacion">
         <div class="modal-header-cancelacion">
@@ -281,45 +392,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     modal.style.top = `${rect.bottom + 10}px`
     modal.style.zIndex = "1000"
 
-    // Ajustar posición si se sale de la pantalla
     document.body.appendChild(modal)
-    const modalRect = modal.getBoundingClientRect()
 
+    // Ajustar posición si se sale de la pantalla
+    const modalRect = modal.getBoundingClientRect()
     if (modalRect.right > window.innerWidth) {
       modal.style.left = `${window.innerWidth - modalRect.width - 20}px`
     }
-
     if (modalRect.bottom > window.innerHeight) {
       modal.style.top = `${rect.top - modalRect.height - 10}px`
     }
 
-    // Event listeners del modal
+    // Event listeners para los botones del modal
     const closeButton = modal.querySelector(".modal-close")
     const cancelButton = modal.querySelector(".btn-modal-cancelar")
     const confirmButton = modal.querySelector(".btn-modal-confirmar")
 
-    const closeModal = () => {
-      modal.remove()
-    }
+    const closeModal = () => modal.remove()
 
     closeButton.addEventListener("click", closeModal)
     cancelButton.addEventListener("click", closeModal)
+    confirmButton.addEventListener("click", () => confirmarCancelacion(reporteId))
 
-    confirmButton.addEventListener("click", () => {
-      confirmarCancelacion(reporteId)
-    })
-
-    // Enfocar textarea
+    // Enfocar el textarea
     setTimeout(() => {
       document.getElementById("razon-cancelacion").focus()
     }, 100)
   }
 
   // ============================================================================
-  // FUNCIONES DE ACCIONES DE REPORTES
+  // ⚡ FUNCIONES DE ACCIONES DE REPORTES (CRUD)
   // ============================================================================
 
-  // Confirmar cancelación
+  /**
+   * Confirma y ejecuta la cancelación de un reporte
+   * @param {number} reporteId - ID del reporte a cancelar
+   */
   async function confirmarCancelacion(reporteId) {
     const razonUsuario = document.getElementById("razon-cancelacion").value.trim()
     const razon = `(admin) ${razonUsuario}`
@@ -329,11 +437,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       return
     }
 
-    // Desactivar autoupdate durante la acción
     autoUpdate = false
 
     try {
-      // Primero cambiar el estado a "Cancelado"
+      // Cambiar estado a "Cancelado"
       const statusResponse = await authenticatedFetch(`${API_URL}/tasks/${reporteId}/estado`, {
         method: "PUT",
         body: JSON.stringify({
@@ -344,7 +451,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (!statusResponse) return
 
-      // Luego actualizar la razón de cancelación
+      // Agregar razón de cancelación
       const razonResponse = await authenticatedFetch(`${API_URL}/tasks/${reporteId}/${encodeURIComponent(razon)}`, {
         method: "PUT",
       })
@@ -358,7 +465,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const searchValue = searchInput.value.trim()
       cargarTabla(searchValue ? parsearConsulta(searchValue) : "")
 
-      // Reactivar autoupdate después de un delay si no hay búsqueda
+      // Reactivar auto-update después de un tiempo
       setTimeout(() => {
         if (!hayTextoBusqueda) {
           autoUpdate = true
@@ -367,16 +474,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (error) {
       console.error("Error al cancelar reporte:", error)
       alert("Error al cancelar el reporte: " + error.message)
-      // Reactivar autoupdate en caso de error
       if (!hayTextoBusqueda) {
         autoUpdate = true
       }
     }
   }
 
-  // Cambiar estado a pendiente
+  /**
+   * Cambia el estado de un reporte a "Pendiente"
+   * @param {number} reporteId - ID del reporte
+   */
   async function cambiarEstadoPendiente(reporteId) {
-    // Desactivar autoupdate durante la acción
     autoUpdate = false
 
     try {
@@ -402,20 +510,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (error) {
       console.error("Error al cambiar estado:", error)
       alert("Error al cambiar el estado: " + error.message)
-      // Reactivar autoupdate en caso de error
       if (!hayTextoBusqueda) {
         autoUpdate = true
       }
     }
   }
 
-  // Eliminar reporte
+  /**
+   * Elimina un reporte permanentemente
+   * @param {number} id - ID del reporte a eliminar
+   */
   async function eliminarReporte(id) {
     if (!confirm(`¿Deseas eliminar el reporte con ID ${id}?`)) {
       return
     }
 
-    // Desactivar autoupdate durante la acción
     autoUpdate = false
 
     try {
@@ -428,7 +537,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("Reporte eliminado exitosamente")
       cargarTabla(searchInput.value.trim() ? parsearConsulta(searchInput.value.trim()) : "")
 
-      // Reactivar autoupdate después de un delay si no hay búsqueda
       setTimeout(() => {
         if (!hayTextoBusqueda) {
           autoUpdate = true
@@ -437,7 +545,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (error) {
       console.error("Error al eliminar:", error)
       mostrarError("No se pudo eliminar el reporte: " + error.message)
-      // Reactivar autoupdate en caso de error
       if (!hayTextoBusqueda) {
         autoUpdate = true
       }
@@ -445,46 +552,49 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ============================================================================
-  // FUNCIÓN DE ACORDEÓN MEJORADA
+  // 🎵 FUNCIONES DE ACORDEÓN (PREGUNTAS FRECUENTES)
   // ============================================================================
 
+  /**
+   * Configura los event listeners para todos los acordeones
+   */
   function setupAccordion() {
     console.log("Configurando acordeones...")
 
     document.querySelectorAll(".accordion-header").forEach((header) => {
-      // Remover event listeners existentes para evitar duplicados
       header.removeEventListener("click", handleAccordionClick)
-
-      // Agregar nuevo event listener
       header.addEventListener("click", handleAccordionClick)
     })
   }
 
+  /**
+   * Maneja el click en un header de acordeón
+   */
   function handleAccordionClick() {
     console.log("Acordeón clickeado")
 
-    // Toggle de la clase active en el header
     this.classList.toggle("active")
 
-    // Obtener el contenido (siguiente elemento hermano)
     const content = this.nextElementSibling
 
     if (content && content.classList.contains("accordion-content")) {
-      // Si está abierto, cerrarlo
       if (content.style.maxHeight && content.style.maxHeight !== "0px") {
         content.style.maxHeight = null
       } else {
-        // Si está cerrado, abrirlo
         content.style.maxHeight = content.scrollHeight + "px"
       }
     }
   }
 
   // ============================================================================
-  // FUNCIONES DE DROPDOWN Y RESTRICCIONES
+  // 📋 FUNCIONES DE DROPDOWN Y RESTRICCIONES DE ACCIONES
   // ============================================================================
 
-  // Función para verificar si un reporte está cancelado/pendiente y deshabilitar opciones
+  /**
+   * Aplica restricciones a las opciones del dropdown según el estado del reporte
+   * @param {number} reporteId - ID del reporte
+   * @param {HTMLElement} dropdownMenu - Elemento del menú dropdown
+   */
   function aplicarRestriccionesPorEstado(reporteId, dropdownMenu) {
     setTimeout(() => {
       const fila = document.querySelector(`tr[data-reporte-id="${reporteId}"]`)
@@ -493,12 +603,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       const opcionFormulario = dropdownMenu.querySelector('.dropdown-item[data-action="formulario"]')
       const opcionCancelar = dropdownMenu.querySelector('.dropdown-item[data-action="cancelar"]')
 
-      // Detectar estado por clases de la fila
       const estaCancelado = fila.classList.contains("cancelled")
       const estaPendiente = fila.classList.contains("pending")
       const estaCompletado = fila.classList.contains("completed")
 
-      // Bloquear "Formulario" solo si está cancelado o pendiente
+      // Restricciones para la opción "Formulario"
       if (estaCancelado || estaPendiente) {
         if (opcionFormulario) {
           opcionFormulario.style.opacity = "0.5"
@@ -507,7 +616,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           opcionFormulario.title = "No disponible para reportes cancelados o pendientes"
         }
       } else {
-        // Habilitar opción formulario en cualquier otro caso (incluido completado)
         if (opcionFormulario) {
           opcionFormulario.style.opacity = "1"
           opcionFormulario.style.cursor = "pointer"
@@ -516,7 +624,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       }
 
-      // Cancelar se bloquea si está cancelado o completado
+      // Restricciones para la opción "Cancelar"
       if (estaCancelado || estaCompletado) {
         if (opcionCancelar) {
           opcionCancelar.style.opacity = "0.5"
@@ -537,7 +645,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 50)
   }
 
-  // Crear dropdown de acciones
+  /**
+   * Crea el dropdown de acciones para un reporte
+   * @param {number} reporteId - ID del reporte
+   * @returns {HTMLElement} Elemento del dropdown creado
+   */
   function crearDropdownAcciones(reporteId) {
     const dropdownContainer = document.createElement("div")
     dropdownContainer.className = "dropdown-acciones"
@@ -549,27 +661,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     const dropdownMenu = document.createElement("div")
     dropdownMenu.className = "dropdown-menu"
 
-    // Crear opciones con data attributes para identificarlas
+    // HTML de las opciones del menú
     dropdownMenu.innerHTML = `
-    <div class="dropdown-item" data-action="formulario">
-      <i class="fas fa-edit"></i> Formulario
-    </div>
-    <div class="dropdown-item" data-action="cancelar">
-      <i class="fas fa-times"></i> Cancelar
-    </div>
-    <div class="dropdown-item dropdown-item-danger" data-action="eliminar">
-      <i class="fas fa-trash"></i> Eliminar
-    </div>
-  `
+      <div class="dropdown-item" data-action="formulario">
+        <i class="fas fa-edit"></i> Formulario
+      </div>
+      <div class="dropdown-item" data-action="cancelar">
+        <i class="fas fa-times"></i> Cancelar
+      </div>
+      <div class="dropdown-item dropdown-item-danger" data-action="eliminar">
+        <i class="fas fa-trash"></i> Eliminar
+      </div>
+    `
 
     dropdownContainer.appendChild(dropdownButton)
     dropdownContainer.appendChild(dropdownMenu)
 
-    // Event listeners para las opciones del dropdown
+    // Referencias a las opciones
     const opcionFormulario = dropdownMenu.querySelector('[data-action="formulario"]')
     const opcionCancelar = dropdownMenu.querySelector('[data-action="cancelar"]')
     const opcionEliminar = dropdownMenu.querySelector('[data-action="eliminar"]')
 
+    // Event listeners para cada opción
     opcionFormulario.addEventListener("click", async (e) => {
       e.stopPropagation()
       if (opcionFormulario.style.pointerEvents !== "none") {
@@ -578,10 +691,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (fila && fila.classList.contains("pending")) return
 
         if (fila && fila.classList.contains("completed")) {
-          // Si está completado, mostrar el modal con el formulario
           await mostrarModalFormulario(reporteId, dropdownButton)
         } else {
-          // Si está activo, cambiar a pendiente
           await cambiarEstadoPendiente(reporteId)
         }
         dropdownMenu.classList.remove("show")
@@ -602,68 +713,52 @@ document.addEventListener("DOMContentLoaded", async () => {
       dropdownMenu.classList.remove("show")
     })
 
-    // Toggle dropdown
+    // Event listener para el botón principal del dropdown
     dropdownButton.addEventListener("click", (e) => {
       e.stopPropagation()
-
-      // Desactivar autoupdate cuando se abre cualquier dropdown
       autoUpdate = false
 
-      // Si este dropdown ya está abierto, cerrarlo
+      // Si ya está abierto, cerrarlo
       if (dropdownMenu.classList.contains("show")) {
         dropdownMenu.classList.remove("show")
         dropdownMenu.style.zIndex = "9999"
-        // Reactivar autoupdate solo si no hay texto de búsqueda
         if (!hayTextoBusqueda) {
           autoUpdate = true
         }
         return
       }
 
-      // Cerrar TODOS los otros dropdowns abiertos primero y resetear su z-index
+      // Cerrar otros dropdowns abiertos
       document.querySelectorAll(".dropdown-menu.show").forEach((menu) => {
         menu.classList.remove("show")
         menu.style.zIndex = "9999"
       })
 
-      // Calcular posición del dropdown centrado respecto al botón
+      // Posicionar y mostrar el menú
       const rect = dropdownButton.getBoundingClientRect()
-      const menuWidth = 150 // Ancho mínimo del dropdown
-
-      // Centrar horizontalmente respecto al botón
+      const menuWidth = 150
       const centerX = rect.left + rect.width / 2 - menuWidth / 2
 
       dropdownMenu.style.left = `${centerX}px`
       dropdownMenu.style.top = `${rect.bottom + 5}px`
-
-      // Mostrar el dropdown
       dropdownMenu.classList.add("show")
-
-      // Asegurar que este dropdown esté al frente de todos los demás
       dropdownMenu.style.zIndex = "10001"
 
-      // Aplicar restricciones después de mostrar el dropdown
       aplicarRestriccionesPorEstado(reporteId, dropdownMenu)
 
-      // Ajustar posición después de que se renderice para obtener el ancho real
+      // Ajustar posición si se sale de la pantalla
       setTimeout(() => {
         const menuRect = dropdownMenu.getBoundingClientRect()
         const realCenterX = rect.left + rect.width / 2 - menuRect.width / 2
 
-        // Ajustar horizontalmente si se sale por la derecha
         if (realCenterX + menuRect.width > window.innerWidth) {
           dropdownMenu.style.left = `${window.innerWidth - menuRect.width - 10}px`
-        }
-        // Ajustar horizontalmente si se sale por la izquierda
-        else if (realCenterX < 10) {
+        } else if (realCenterX < 10) {
           dropdownMenu.style.left = "10px"
-        }
-        // Usar la posición centrada si cabe
-        else {
+        } else {
           dropdownMenu.style.left = `${realCenterX}px`
         }
 
-        // Ajustar verticalmente si se sale por abajo
         if (menuRect.bottom > window.innerHeight) {
           dropdownMenu.style.top = `${rect.top - menuRect.height - 5}px`
         }
@@ -674,9 +769,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.addEventListener("click", (e) => {
       if (!dropdownContainer.contains(e.target)) {
         dropdownMenu.classList.remove("show")
-        // Resetear z-index cuando se cierra
         dropdownMenu.style.zIndex = "9999"
-        // Reactivar autoupdate solo si no hay texto de búsqueda
         if (!hayTextoBusqueda) {
           autoUpdate = true
         }
@@ -687,9 +780,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ============================================================================
-  // FUNCIONES DE UTILIDAD Y HELPERS
+  // 🛠️ FUNCIONES DE UTILIDAD Y HELPERS
   // ============================================================================
 
+  /**
+   * Formatea el texto de los encabezados de tabla
+   * @param {string} texto - Texto a formatear
+   * @returns {string} Texto formateado
+   */
   function formatearEncabezado(texto) {
     if (texto === "id") {
       return "ID"
@@ -701,6 +799,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       .replace(/\b\w/g, (l) => l.toUpperCase())
   }
 
+  /**
+   * Crea una función debounced que retrasa la ejecución
+   * @param {Function} func - Función a ejecutar
+   * @param {number} delay - Retraso en milisegundos
+   * @returns {Function} Función debounced
+   */
   function debounce(func, delay) {
     let timeoutId
     return function (...args) {
@@ -709,17 +813,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  /**
+   * Muestra un mensaje de error en la interfaz
+   * @param {string} mensaje - Mensaje de error a mostrar
+   */
   function mostrarError(mensaje) {
     console.error("Mostrando error:", mensaje)
     errorFetchElement.textContent = mensaje
     errorFetchElement.style.display = "block"
   }
 
+  /**
+   * Limpia el mensaje de error de la interfaz
+   */
   function limpiarError() {
     errorFetchElement.textContent = ""
     errorFetchElement.style.display = "none"
   }
 
+  /**
+   * Actualiza el estado del botón de exportar según los datos disponibles
+   */
   function actualizarEstadoBotonExportar() {
     if (!datosActuales || datosActuales.length === 0) {
       exportarButton.disabled = true
@@ -733,25 +847,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ============================================================================
-  // FUNCIONES DE BÚSQUEDA Y PARSEO
+  // 🔍 FUNCIONES DE BÚSQUEDA Y PARSEO DE CONSULTAS
   // ============================================================================
 
+  /**
+   * Parsea una consulta de búsqueda y la convierte en parámetros de URL
+   * @param {string} consulta - Consulta de búsqueda del usuario
+   * @returns {string} Parámetros de URL parseados
+   */
   function parsearConsulta(consulta) {
     console.log("Parseando consulta:", consulta)
 
-    // Si la consulta no contiene operadores especiales, hacer búsqueda simple
+    // Si no contiene operadores especiales, buscar en descripción
     if (!consulta.includes("=") && !consulta.includes("|") && !consulta.includes("&")) {
-      // Búsqueda simple en todos los campos
       return `des=${encodeURIComponent(consulta)}`
     }
 
+    // Dividir por operador OR (|)
     const gruposOR = consulta.split("|").map((g) => g.trim())
 
     const parametros = {
-      cor: [],
-      cod: [],
-      id: [],
-      des: [],
+      cor: [], // correo
+      cod: [], // código
+      id: [], // ID
+      des: [], // descripción
     }
 
     gruposOR.forEach((grupo) => {
@@ -787,6 +906,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       })
 
+      // Manejar combinaciones AND
       if (condicionesAND.length > 1) {
         let combinacion = ""
         for (const [campo, valores] of Object.entries(grupoTemp)) {
@@ -803,6 +923,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     })
 
+    // Construir resultado final
     const resultado = Object.entries(parametros)
       .filter(([_, valores]) => valores.length > 0)
       .map(([campo, valores]) => {
@@ -814,18 +935,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     return resultado
   }
 
+  /**
+   * Ejecuta una búsqueda basada en el valor del input de búsqueda
+   */
   function barraDeBusqueda() {
     const valorBusqueda = searchInput.value.trim()
     console.log("Ejecutando búsqueda con valor:", valorBusqueda)
 
     hayTextoBusqueda = valorBusqueda !== ""
 
+    // Guardar/limpiar búsqueda en localStorage
     if (hayTextoBusqueda) {
       localStorage.setItem("searchValue", valorBusqueda)
     } else {
       localStorage.removeItem("searchValue")
     }
 
+    // Si no hay búsqueda, mostrar todos los datos
     if (!hayTextoBusqueda) {
       valores = ""
       autoUpdate = true
@@ -844,29 +970,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       const tablaContenedor = document.getElementById("reportes-table")
       tablaContenedor.textContent = ""
       mostrarError(`Error en la sintaxis de búsqueda: ${error.message}`)
-      // Actualizar estado del botón cuando hay error
       datosActuales = []
       actualizarEstadoBotonExportar()
     }
   }
 
+  /**
+   * Inicializa la búsqueda al cargar la página (recupera búsqueda guardada)
+   */
   function inicializarBusqueda() {
     const savedSearch = localStorage.getItem("searchValue")
     console.log("Búsqueda guardada:", savedSearch)
 
     if (savedSearch && savedSearch.trim() !== "") {
-      // Restaurar el valor en el input
       searchInput.value = savedSearch
       hayTextoBusqueda = true
       autoUpdate = false
 
       console.log("Ejecutando búsqueda guardada...")
-      // Ejecutar la búsqueda después de un breve delay
       setTimeout(() => {
         barraDeBusqueda()
       }, 500)
     } else {
-      // Sin búsqueda guardada, cargar todos los datos
       console.log("Sin búsqueda guardada, cargando todos los datos...")
       hayTextoBusqueda = false
       autoUpdate = true
@@ -875,9 +1000,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ============================================================================
-  // FUNCIONES DE TABLA Y VISUALIZACIÓN
+  // 📊 FUNCIONES DE TABLA Y VISUALIZACIÓN DE DATOS
   // ============================================================================
 
+  /**
+   * Aplica estilos especiales a celdas de reportes cancelados
+   * @param {HTMLElement} celda - Elemento de la celda
+   * @param {string} valor - Valor de la celda
+   * @param {string} campo - Nombre del campo
+   */
   function aplicarEstilosCancelados(celda, valor, campo) {
     if (campo === "nivel" || campo === "level" || campo === "priority") {
       if (
@@ -896,6 +1027,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  /**
+   * Muestra los datos JSON en formato de tabla HTML
+   * @param {Array|Object} jsonData - Datos a mostrar en la tabla
+   */
   function mostrarJSONEnTabla(jsonData) {
     console.log("Mostrando datos en tabla:", jsonData)
     const tablaContenedor = document.getElementById("reportes-table")
@@ -905,19 +1040,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const datos = Array.isArray(jsonData) ? jsonData : [jsonData]
 
     if (datos.length > 0) {
+      // Crear encabezados
       const thead = document.createElement("thead")
       const encabezadoFila = document.createElement("tr")
-      // Filtrar columnas para ocultar usuario_id
       const columnas = Object.keys(datos[0]).filter((columna) => columna !== "usuario_id")
 
-      // Agregar encabezados de las columnas de datos
       columnas.forEach((columna) => {
         const th = document.createElement("th")
         th.textContent = formatearEncabezado(columna)
         encabezadoFila.appendChild(th)
       })
 
-      // Agregar encabezado para la columna de acciones
+      // Agregar columna de acciones
       const thAcciones = document.createElement("th")
       thAcciones.textContent = "Acciones"
       thAcciones.style.textAlign = "center"
@@ -926,31 +1060,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       thead.appendChild(encabezadoFila)
       tabla.appendChild(thead)
 
+      // Crear filas de datos
       const tbody = document.createElement("tbody")
       datos.forEach((filaData) => {
         const fila = document.createElement("tr")
-        fila.setAttribute("data-reporte-id", filaData.id) // Para identificar la fila
+        fila.setAttribute("data-reporte-id", filaData.id)
+
+        // Determinar estado del reporte
         const estaCancelado = estaReporteCancelado(filaData)
         const estaCompletado = estaReporteCompletado(filaData)
         const estaPendiente = estaReportePendiente(filaData)
 
-        if (estaCancelado) {
-          fila.classList.add("cancelled")
-        }
-        if (estaCompletado) {
-          fila.classList.add("completed")
-        }
-        if (estaPendiente) {
-          fila.classList.add("pending")
-        }
+        // Aplicar clases CSS según el estado
+        if (estaCancelado) fila.classList.add("cancelled")
+        if (estaCompletado) fila.classList.add("completed")
+        if (estaPendiente) fila.classList.add("pending")
 
-        // Crear celdas para las columnas de datos (sin usuario_id)
+        // Crear celdas de datos
         columnas.forEach((columna) => {
           const celda = document.createElement("td")
           const valor = filaData[columna]
           const valorStr = String(valor).toLowerCase()
           const columnaStr = columna.toLowerCase()
 
+          // Manejar valores nulos/undefined
           if (valor === null || valor === undefined) {
             celda.textContent = "-"
           } else if (typeof valor === "object") {
@@ -959,7 +1092,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             celda.textContent = valor
           }
 
-          // Estilos por estado - solo visual, sin dropdown
+          // Aplicar estilos especiales según el tipo de campo
           if ((columnaStr.includes("status") || columnaStr.includes("estado")) && valor) {
             celda.classList.add("status")
             if (valorStr.includes("activo") || valorStr.includes("active")) {
@@ -977,7 +1110,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           }
 
-          // Estilos por nivel o prioridad
+          // Estilos para niveles de prioridad
           if (
             (columnaStr.includes("nivel") || columnaStr.includes("level") || columnaStr.includes("priority")) &&
             valor
@@ -991,18 +1124,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           }
 
-          // Aplicar estilos de cancelado/completado solo si corresponde
+          // Aplicar estilos de cancelado si corresponde
           if (estaCancelado) {
             aplicarEstilosCancelados(celda, String(valor), columna)
-          }
-          if (estaCompletado) {
-            // Si quieres aplicar estilos especiales para completados, puedes hacerlo aquí
           }
 
           fila.appendChild(celda)
         })
 
-        // Crear celda para dropdown de acciones
+        // Crear celda de acciones
         const celdaAcciones = document.createElement("td")
         celdaAcciones.style.textAlign = "center"
         celdaAcciones.className = "acciones-cell"
@@ -1019,18 +1149,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       tablaContenedor.appendChild(tabla)
       limpiarError()
 
-      // Actualizar estado del botón después de mostrar datos
       datosActuales = datos
       actualizarEstadoBotonExportar()
     } else {
+      // No hay datos para mostrar
       tablaContenedor.innerHTML = ""
       mostrarError("No se encontraron resultados para la búsqueda actual")
-      // Limpiar datos y actualizar botón cuando no hay resultados
       datosActuales = []
       actualizarEstadoBotonExportar()
     }
   }
 
+  /**
+   * Carga datos de la API y los muestra en la tabla
+   * @param {string} busqueda - Parámetros de búsqueda para la API
+   */
   async function cargarTabla(busqueda) {
     console.log("Cargando tabla con búsqueda:", busqueda)
 
@@ -1043,29 +1176,29 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       const response = await authenticatedFetch(url)
-      if (!response) return // Ya manejado por authenticatedFetch
+      if (!response) return
 
       const data = await response.json()
       console.log("Datos recibidos:", data)
       datosActuales = data
       limpiarError()
 
+      // Manejar diferentes casos de respuesta
       if (Array.isArray(data) && data.length === 0 && !searchInput.value.trim()) {
         mostrarError("Por el momento no se ha generado ningun reporte.")
         const tablaContenedor = document.getElementById("reportes-table")
         tablaContenedor.innerHTML = ""
-        // Actualizar botón cuando no hay datos
         actualizarEstadoBotonExportar()
       } else if (Array.isArray(data) && data.length === 0) {
         mostrarError("La búsqueda no produjo resultados. Intente con otros términos.")
         const tablaContenedor = document.getElementById("reportes-table")
         tablaContenedor.innerHTML = ""
-        // Actualizar botón cuando no hay resultados de búsqueda
         actualizarEstadoBotonExportar()
       } else {
         mostrarJSONEnTabla(data)
       }
 
+      // Actualizar estado de búsqueda
       if (busqueda && busqueda !== "") {
         hayTextoBusqueda = true
         autoUpdate = false
@@ -1077,9 +1210,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         valores = ""
       }
       datosActuales = []
-      // Actualizar botón cuando hay error
       actualizarEstadoBotonExportar()
 
+      // Mostrar error específico según el tipo
       if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
         mostrarError(
           "Error de conexión: No se pudo conectar con el servidor. Verifique su conexión a internet o si el servidor está funcionando.",
@@ -1094,19 +1227,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ============================================================================
-  // FUNCIONES DE EXPORTACIÓN
+  // 📤 FUNCIONES DE EXPORTACIÓN DE DATOS
   // ============================================================================
 
+  /**
+   * Exporta los datos actuales a un archivo Excel
+   * @param {Array} datosActuales - Datos a exportar
+   */
   async function exportData(datosActuales) {
     console.log("Iniciando exportación de datos:", datosActuales)
 
-    // Verificación mejorada con mensaje más claro
     if (!datosActuales || datosActuales.length === 0) {
       mostrarError("No hay datos disponibles para exportar. Cargue datos en la tabla primero.")
       return
     }
 
-    // Verificar que XLSX esté disponible
+    // Verificar si XLSX está disponible
     if (!window.XLSX) {
       console.log("XLSX no disponible, intentando cargar...")
       try {
@@ -1123,10 +1259,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       console.log("Creando archivo Excel...")
+
+      // Crear hoja de cálculo y libro
       const worksheet = window.XLSX.utils.json_to_sheet(datosActuales)
       const workbook = window.XLSX.utils.book_new()
       window.XLSX.utils.book_append_sheet(workbook, worksheet, "Reportes")
 
+      // Generar nombre de archivo con timestamp
       const fechaActual = new Date()
       const fecha = fechaActual.toISOString().replace(/T/, "_").replace(/:/g, "-").replace(/\..+/, "")
       const nombreArchivo = `reportes_${fecha}.xlsx`
@@ -1136,7 +1275,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       limpiarError()
       console.log(`Archivo exportado exitosamente: ${nombreArchivo}`)
 
-      // Usar clases CSS en lugar de estilos inline
+      // Feedback visual al usuario
       const originalText = exportarButton.textContent
       exportarButton.textContent = "¡Exportado!"
       exportarButton.classList.add("exported")
@@ -1151,6 +1290,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  /**
+   * Refresca la tabla con los datos actuales
+   */
   function refrescarTabla() {
     const valorBusqueda = searchInput.value.trim()
     if (valorBusqueda) {
@@ -1161,14 +1303,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ============================================================================
-  // FUNCIONES DE SIDEBAR Y NAVEGACIÓN
+  // 🧭 FUNCIONES DE SIDEBAR Y NAVEGACIÓN
   // ============================================================================
 
+  /**
+   * Inicializa la navegación entre secciones del sidebar
+   */
   function initializeSections() {
     const sidebarLinks = document.querySelectorAll('.sidebar-nav a[href^="#"]')
     const sections = document.querySelectorAll("section[id]")
 
-    // Ocultar todas las secciones excepto la primera
+    // Mostrar solo la primera sección inicialmente
     sections.forEach((section, index) => {
       if (index === 0) {
         section.style.display = "block"
@@ -1177,7 +1322,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     })
 
-    // Agregar event listeners a los enlaces del sidebar
+    // Event listeners para los enlaces del sidebar
     sidebarLinks.forEach((link) => {
       link.addEventListener("click", (e) => {
         e.preventDefault()
@@ -1200,10 +1345,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             item.classList.remove("active")
           })
 
-          // Agregar clase activa al elemento padre (li)
           link.parentElement.classList.add("active")
 
-          // Cerrar sidebar despues de seleccionar
+          // Cerrar sidebar en móvil
           sidebar.classList.add("collapsed")
           sidebar.style.transform = "translateX(-100%)"
           mainContent.classList.add("expanded")
@@ -1211,7 +1355,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           overlay.classList.remove("active")
           sidebar.classList.remove("visible")
 
-          // Cerrar sidebar en móvil después de seleccionar
           if (window.innerWidth <= 576) {
             sidebar.classList.add("collapsed")
             sidebar.style.transform = "translateX(-100%)"
@@ -1222,7 +1365,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             overlay.classList.remove("active-mobile")
           }
 
-          // Reinicializar acordeones cuando se cambia de sección
+          // Configurar acordeones después de cambiar sección
           setTimeout(() => {
             setupAccordion()
           }, 100)
@@ -1232,260 +1375,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ============================================================================
-  // INICIALIZACIÓN Y CONFIGURACIÓN INICIAL
+  // 📋 MODAL DE FORMULARIO COMPLETADO
   // ============================================================================
 
-  // Inicializar el estado del botón de exportar
-  actualizarEstadoBotonExportar()
-
-  // Inicializar las secciones
-  initializeSections()
-
-  // Configurar acordeones
-  setupAccordion()
-
-  // Inicialmente, el sidebar está oculto y el contenido principal expandido
-  sidebar.classList.add("collapsed")
-  mainContent.classList.add("expanded")
-
-  // Llamar a la inicialización después de configurar todas las funciones
-  setTimeout(inicializarBusqueda, 100)
-
-  // ============================================================================
-  // EVENT LISTENERS
-  // ============================================================================
-
-  // Funcionalidad del botón de cerrar sesión
-  logoutButton.addEventListener("click", () => {
-    if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
-      localStorage.removeItem("access_token")
-      localStorage.removeItem("searchValue")
-      alert("Sesión cerrada exitosamente")
-      window.location.href = "index.html"
-    }
-  })
-
-  // Sidebar toggle
-  sidebarToggle.addEventListener("click", (event) => {
-    event.stopPropagation()
-    const sidebarVisible = !sidebar.classList.contains("collapsed")
-
-    if (!sidebarVisible) {
-      sidebar.classList.remove("collapsed")
-      sidebar.style.transform = "translateX(0)"
-      mainContent.classList.remove("expanded")
-      mainContent.style.marginLeft = 0
-      overlay.classList.add("active")
-    } else {
-      sidebar.classList.add("collapsed")
-      sidebar.style.transform = "translateX(-100%)"
-      mainContent.classList.add("expanded")
-      mainContent.style.marginLeft = "0"
-      overlay.classList.remove("active")
-    }
-  })
-
-  // Click fuera del sidebar
-  document.addEventListener("click", (event) => {
-    const sidebarVisible = !sidebar.classList.contains("collapsed")
-    if (sidebarVisible && !sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
-      sidebar.classList.add("collapsed")
-      sidebar.style.transform = "translateX(-100%)"
-      mainContent.classList.add("expanded")
-      mainContent.style.marginLeft = "0"
-      overlay.classList.remove("active")
-    }
-  })
-
-  // Prevenir cierre del sidebar al hacer click dentro
-  sidebar.addEventListener("click", (event) => {
-    event.stopPropagation()
-  })
-
-  // Búsqueda
-  const liveSearch = debounce(() => {
-    barraDeBusqueda()
-  }, 400)
-
-  searchInput.addEventListener("input", () => {
-    hayTextoBusqueda = searchInput.value.trim() !== ""
-    autoUpdate = !hayTextoBusqueda
-    liveSearch()
-  })
-
-  searchInput.addEventListener("blur", () => {
-    const currentValue = searchInput.value.trim()
-    if (currentValue !== "") {
-      localStorage.setItem("searchValue", currentValue)
-      hayTextoBusqueda = true
-      autoUpdate = false
-    } else {
-      localStorage.removeItem("searchValue")
-      hayTextoBusqueda = false
-      autoUpdate = true
-    }
-  })
-
-  searchInput.addEventListener("focus", () => {
-    if (searchInput.value.trim() !== "") {
-      hayTextoBusqueda = true
-      autoUpdate = false
-    }
-  })
-
-  // Botones
-  showAllButton.addEventListener("click", () => {
-    console.log("Botón mostrar todos clickeado")
-    searchInput.value = ""
-    valores = ""
-    hayTextoBusqueda = false
-    autoUpdate = true
-    localStorage.removeItem("searchValue")
-    limpiarError()
-    cargarTabla(valores)
-  })
-
-  exportarButton.addEventListener("click", () => {
-    console.log("Botón exportar clickeado")
-    if (exportarButton.disabled) {
-      mostrarError("No hay datos disponibles para exportar.")
-      return
-    }
-    exportData(datosActuales)
-  })
-
-  refreshButton.addEventListener("click", refrescarTabla)
-
-  // Eventos de teclado
-  document.addEventListener("keypress", (event) => {
-    var searchInputFocused = document.activeElement === searchInput
-    if (event.key === "Enter" && searchInputFocused) {
-      barraDeBusqueda()
-    }
-  })
-
-  // Eventos de selección
-  document.addEventListener("selectionchange", () => {
-    const selection = document.getSelection()
-    if (selection && selection.toString().length > 0) {
-      autoUpdate = false
-    } else if (!hayTextoBusqueda) {
-      autoUpdate = true
-    }
-  })
-
-  // Eventos de formulario
-  document.addEventListener("submit", (e) => {
-    const currentValue = searchInput.value.trim()
-    if (currentValue !== "") {
-      localStorage.setItem("searchValue", currentValue)
-    }
-  })
-
-  // Eventos de navegación
-  const navItems = document.querySelectorAll(".sidebar-nav li")
-
-  navItems.forEach((item) => {
-    item.addEventListener("mouseenter", () => {
-      const activeItem = document.querySelector(".sidebar-nav li.active")
-      if (activeItem && activeItem !== item) {
-        activeItem.classList.add("suppress-border")
-      }
-    })
-
-    item.addEventListener("mouseleave", () => {
-      const activeItem = document.querySelector(".sidebar-nav li.active")
-      if (activeItem) {
-        activeItem.classList.remove("suppress-border")
-      }
-    })
-  })
-
-  // Eventos de ventana
-  window.addEventListener("beforeunload", () => {
-    const currentValue = searchInput.value.trim()
-    if (currentValue !== "") {
-      localStorage.setItem("searchValue", currentValue)
-    }
-  })
-
-  window.addEventListener("pagehide", () => {
-    const currentValue = searchInput.value.trim()
-    if (currentValue !== "") {
-      localStorage.setItem("searchValue", currentValue)
-    }
-  })
-
-  // ============================================================================
-  // MANEJO MÓVIL
-  // ============================================================================
-
-  if (window.innerWidth <= 576) {
-    sidebarToggle.addEventListener("click", (event) => {
-      event.stopPropagation()
-
-      if (sidebar.classList.contains("visible")) {
-        sidebar.classList.remove("visible")
-        sidebar.style.transform = "translateX(-100%)"
-        mainContent.style.marginLeft = "0"
-        overlay.classList.remove("active-mobile")
-      } else {
-        sidebar.classList.add("visible")
-        sidebar.style.transform = "translateX(0)"
-        mainContent.style.marginLeft = `${sidebar.offsetWidth}px`
-        overlay.classList.add("active-mobile")
-      }
-    })
-
-    document.addEventListener("click", (event) => {
-      if (
-        window.innerWidth <= 576 &&
-        !sidebar.contains(event.target) &&
-        !sidebarToggle.contains(event.target) &&
-        sidebar.classList.contains("visible")
-      ) {
-        sidebar.classList.remove("visible")
-        sidebar.style.transform = "translateX(-100%)"
-        mainContent.style.marginLeft = "0"
-        overlay.classList.remove("active-mobile")
-      }
-    })
-  }
-
-  // ============================================================================
-  // INTERVALOS Y ACTUALIZACIONES AUTOMÁTICAS
-  // ============================================================================
-
-  // Verificar periódicamente la validez del token y actualizar automáticamente
-  setInterval(async () => {
-    hayTextoBusqueda = searchInput.value.trim() !== ""
-
-    if (autoUpdate && !hayTextoBusqueda) {
-      console.log("Actualizando automáticamente...")
-      // Verificar token antes de actualizar
-      const isValid = await verifyTokenValidity()
-      if (isValid) {
-        cargarTabla(valores)
-      }
-    }
-  }, 30000) // Verificar cada 30 segundos
-
-  // Actualización más frecuente de reportes
-  setInterval(() => {
-    if (autoUpdate && !hayTextoBusqueda) {
-      cargarTabla(valores)
-    }
-  }, 3000)
-
-  // Modal para mostrar formulario completado
+  /**
+   * Muestra el modal con los detalles del formulario de un reporte
+   * @param {number} reporteId - ID del reporte
+   * @param {HTMLElement} botonAccion - Botón que activó el modal
+   */
   async function mostrarModalFormulario(reporteId, botonAccion) {
-    // Remover modal existente si existe
+    // Remover modal existente
     const modalExistente = document.getElementById("modal-formulario")
     if (modalExistente) {
       modalExistente.remove()
     }
 
-    // Crear overlay para el fondo
+    // Crear overlay
     let overlayElement = document.getElementById("modal-formulario-overlay")
     if (!overlayElement) {
       overlayElement = document.createElement("div")
@@ -1512,14 +1417,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     modal.style.boxShadow = "0 8px 32px rgba(0,0,0,0.25)"
     modal.style.maxWidth = "420px"
     modal.style.width = "95%"
-    modal.style.maxHeight = "90vh" // Limita la altura máxima
-    modal.style.overflowY = "auto" // Scroll si se excede la altura
+    modal.style.maxHeight = "90vh"
+    modal.style.overflowY = "auto"
     modal.style.padding = "0"
     modal.style.position = "relative"
     modal.style.zIndex = "10001"
     modal.style.animation = "modalFadeIn 0.2s"
 
-    // Mostrar cargando mientras se obtiene el formulario
+    // HTML del modal
     modal.innerHTML = `
       <div class="modal-content-formulario" style="padding:0;">
         <div class="modal-header-formulario" style="background:#800000;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between;">
@@ -1533,7 +1438,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     `
     overlayElement.appendChild(modal)
 
-    // Cerrar modal
+    // Event listeners para cerrar
     const closeButton = modal.querySelector(".modal-close")
     closeButton.addEventListener("click", () => {
       overlayElement.remove()
@@ -1542,15 +1447,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (e.target === overlayElement) overlayElement.remove()
     })
 
-    // Obtener datos del formulario
     try {
+      // Cargar datos del formulario
       const response = await authenticatedFetch(`${API_URL}/tasks/${reporteId}/formulario`)
       if (!response) {
         modal.querySelector("#formulario-loading").textContent = "No se pudo obtener el formulario."
         return
       }
+
       const data = await response.json()
-      // Renderizar los datos del formulario (sin el id)
+
+      // Mostrar datos en tabla
       modal.querySelector(".modal-body-formulario").innerHTML = `
         <table class="formulario-table" style="width:100%;border-collapse:collapse;">
           <tr><th style="text-align:left;padding:8px 6px;color:#800000;">Nombre(s)</th><td style="padding:8px 6px;">${data.nombres || ""}</td></tr>
@@ -1572,4 +1479,464 @@ document.addEventListener("DOMContentLoaded", async () => {
       modal.querySelector("#formulario-loading").textContent = "Error al cargar el formulario."
     }
   }
+
+  // ============================================================================
+  // CONFIGURACIÓN INICIAL
+  // ============================================================================
+
+  actualizarEstadoBotonExportar()
+  initializeSections()
+  setupAccordion()
+
+  // Configurar sidebar como colapsado inicialmente
+  sidebar.classList.add("collapsed")
+  mainContent.classList.add("expanded")
+
+  // Inicializar búsqueda después de un breve delay
+  setTimeout(inicializarBusqueda, 100)
+
+  // ============================================================================
+  // EVENT LISTENERS PRINCIPALES
+  // ============================================================================
+
+  /**
+   * Logout - Cerrar sesión
+   */
+  logoutButton.addEventListener("click", () => {
+    if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
+      localStorage.removeItem("access_token")
+      localStorage.removeItem("searchValue")
+      alert("Sesión cerrada exitosamente")
+      window.location.href = "index.html"
+    }
+  })
+
+  /**
+   * Toggle del sidebar
+   */
+  sidebarToggle.addEventListener("click", (event) => {
+    event.stopPropagation()
+    const sidebarVisible = !sidebar.classList.contains("collapsed")
+
+    if (!sidebarVisible) {
+      // Mostrar sidebar
+      sidebar.classList.remove("collapsed")
+      sidebar.style.transform = "translateX(0)"
+      mainContent.classList.remove("expanded")
+      mainContent.style.marginLeft = 0
+      overlay.classList.add("active")
+    } else {
+      // Ocultar sidebar
+      sidebar.classList.add("collapsed")
+      sidebar.style.transform = "translateX(-100%)"
+      mainContent.classList.add("expanded")
+      mainContent.style.marginLeft = "0"
+      overlay.classList.remove("active")
+    }
+  })
+
+  /**
+   * Cerrar sidebar al hacer click fuera
+   */
+  document.addEventListener("click", (event) => {
+    const sidebarVisible = !sidebar.classList.contains("collapsed")
+    if (sidebarVisible && !sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
+      sidebar.classList.add("collapsed")
+      sidebar.style.transform = "translateX(-100%)"
+      mainContent.classList.add("expanded")
+      mainContent.style.marginLeft = "0"
+      overlay.classList.remove("active")
+    }
+  })
+
+  /**
+   * Prevenir cierre del sidebar al hacer click dentro
+   */
+  sidebar.addEventListener("click", (event) => {
+    event.stopPropagation()
+  })
+
+  /**
+   * Búsqueda en vivo con debounce
+   */
+  const liveSearch = debounce(() => {
+    barraDeBusqueda()
+  }, 400)
+
+  searchInput.addEventListener("input", () => {
+    hayTextoBusqueda = searchInput.value.trim() !== ""
+    autoUpdate = !hayTextoBusqueda
+    liveSearch()
+  })
+
+  /**
+   * Guardar búsqueda al perder foco
+   */
+  searchInput.addEventListener("blur", () => {
+    const currentValue = searchInput.value.trim()
+    if (currentValue !== "") {
+      localStorage.setItem("searchValue", currentValue)
+      hayTextoBusqueda = true
+      autoUpdate = false
+    } else {
+      localStorage.removeItem("searchValue")
+      hayTextoBusqueda = false
+      autoUpdate = true
+    }
+  })
+
+  /**
+   * Activar búsqueda al enfocar si hay texto
+   */
+  searchInput.addEventListener("focus", () => {
+    if (searchInput.value.trim() !== "") {
+      hayTextoBusqueda = true
+      autoUpdate = false
+    }
+  })
+
+  /**
+   * Botón "Mostrar todos"
+   */
+  showAllButton.addEventListener("click", () => {
+    console.log("Botón mostrar todos clickeado")
+    searchInput.value = ""
+    valores = ""
+    hayTextoBusqueda = false
+    autoUpdate = true
+    localStorage.removeItem("searchValue")
+    limpiarError()
+    cargarTabla(valores)
+  })
+
+  /**
+   * Botón de exportar
+   */
+  exportarButton.addEventListener("click", () => {
+    console.log("Botón exportar clickeado")
+    if (exportarButton.disabled) {
+      mostrarError("No hay datos disponibles para exportar.")
+      return
+    }
+    exportData(datosActuales)
+  })
+
+  /**
+   * Botón de refrescar
+   */
+  refreshButton.addEventListener("click", refrescarTabla)
+
+  /**
+   * Búsqueda con Enter
+   */
+  document.addEventListener("keypress", (event) => {
+    var searchInputFocused = document.activeElement === searchInput
+    if (event.key === "Enter" && searchInputFocused) {
+      barraDeBusqueda()
+    }
+  })
+
+  /**
+   * Pausar auto-update al seleccionar texto
+   */
+  document.addEventListener("selectionchange", () => {
+    const selection = document.getSelection()
+    if (selection && selection.toString().length > 0) {
+      autoUpdate = false
+    } else if (!hayTextoBusqueda) {
+      autoUpdate = true
+    }
+  })
+
+  /**
+   * Guardar búsqueda al enviar formulario
+   */
+  document.addEventListener("submit", (e) => {
+    const currentValue = searchInput.value.trim()
+    if (currentValue !== "") {
+      localStorage.setItem("searchValue", currentValue)
+    }
+  })
+
+  /**
+   * Efectos visuales del sidebar
+   */
+  const navItems = document.querySelectorAll(".sidebar-nav li")
+
+  navItems.forEach((item) => {
+    item.addEventListener("mouseenter", () => {
+      const activeItem = document.querySelector(".sidebar-nav li.active")
+      if (activeItem && activeItem !== item) {
+        activeItem.classList.add("suppress-border")
+      }
+    })
+
+    item.addEventListener("mouseleave", () => {
+      const activeItem = document.querySelector(".sidebar-nav li.active")
+      if (activeItem) {
+        activeItem.classList.remove("suppress-border")
+      }
+    })
+  })
+
+  /**
+   * Guardar búsqueda antes de cerrar la página
+   */
+  window.addEventListener("beforeunload", () => {
+    const currentValue = searchInput.value.trim()
+    if (currentValue !== "") {
+      localStorage.setItem("searchValue", currentValue)
+    }
+  })
+
+  /**
+   * Guardar búsqueda al ocultar la página
+   */
+  window.addEventListener("pagehide", () => {
+    const currentValue = searchInput.value.trim()
+    if (currentValue !== "") {
+      localStorage.setItem("searchValue", currentValue)
+    }
+  })
+
+  // ============================================================================
+  // MANEJO ESPECÍFICO PARA DISPOSITIVOS MÓVILES
+  // ============================================================================
+
+  if (window.innerWidth <= 576) {
+    /**
+     * Toggle del sidebar en móvil
+     */
+    sidebarToggle.addEventListener("click", (event) => {
+      event.stopPropagation()
+
+      if (sidebar.classList.contains("visible")) {
+        // Ocultar sidebar
+        sidebar.classList.remove("visible")
+        sidebar.style.transform = "translateX(-100%)"
+        mainContent.style.marginLeft = "0"
+        overlay.classList.remove("active-mobile")
+      } else {
+        // Mostrar sidebar
+        sidebar.classList.add("visible")
+        sidebar.style.transform = "translateX(0)"
+        mainContent.style.marginLeft = `${sidebar.offsetWidth}px`
+        overlay.classList.add("active-mobile")
+      }
+    })
+
+    /**
+     * Cerrar sidebar en móvil al hacer click fuera
+     */
+    document.addEventListener("click", (event) => {
+      if (
+        window.innerWidth <= 576 &&
+        !sidebar.contains(event.target) &&
+        !sidebarToggle.contains(event.target) &&
+        sidebar.classList.contains("visible")
+      ) {
+        sidebar.classList.remove("visible")
+        sidebar.style.transform = "translateX(-100%)"
+        mainContent.style.marginLeft = "0"
+        overlay.classList.remove("active-mobile")
+      }
+    })
+  }
+
+  // ============================================================================
+  // INTERVALOS Y ACTUALIZACIONES AUTOMÁTICAS
+  // ============================================================================
+
+  /**
+   * Verificación periódica del token y actualización automática (cada 30 segundos)
+   */
+  setInterval(async () => {
+    hayTextoBusqueda = searchInput.value.trim() !== ""
+
+    if (autoUpdate && !hayTextoBusqueda) {
+      console.log("Actualizando automáticamente...")
+      const isValid = await verifyTokenValidity()
+      if (isValid) {
+        cargarTabla(valores)
+      }
+    }
+  }, 30000)
+
+  /**
+   * Actualización rápida de datos (cada 3 segundos)
+   */
+  setInterval(() => {
+    if (autoUpdate && !hayTextoBusqueda) {
+      cargarTabla(valores)
+    }
+  }, 3000)
+
+  // ============================================================================
+  // CONFIGURACIÓN DEL FORMULARIO DE CONTACTO
+  // ============================================================================
+
+  /**
+      cargarTabla(valores)
+    }
+  }, 3000)
+
+  // ============================================================================
+  // CONFIGURACIÓN DEL FORMULARIO DE CONTACTO
+  // ============================================================================
+
+  /**
+   * Manejo del envío del formulario de contacto
+   */
+  const contactForm = document.getElementById("contactForm")
+  if (contactForm) {
+    contactForm.addEventListener("submit", (e) => {
+      e.preventDefault()
+      const successMessage = document.getElementById("contactExito")
+      if (successMessage) {
+        successMessage.textContent = "Mensaje enviado con éxito"
+        e.target.reset()
+        setTimeout(() => {
+          successMessage.textContent = ""
+        }, 3000)
+      }
+    })
+  }
+
+  // ============================================================================
+  // MANEJO DE EVENTOS DE TECLADO GLOBALES
+  // ============================================================================
+
+  /**
+   * Cerrar modales con la tecla Escape
+   */
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      // Cerrar modal de ayuda si está abierto
+      if (helpModal && helpModal.style.display === "block") {
+        hideModal("help-modal")
+      }
+
+      // Cerrar modal de cancelación si existe
+      const modalCancelacion = document.getElementById("modal-cancelacion")
+      if (modalCancelacion) {
+        modalCancelacion.remove()
+      }
+
+      // Cerrar modal de formulario si existe
+      const modalFormularioOverlay = document.getElementById("modal-formulario-overlay")
+      if (modalFormularioOverlay) {
+        modalFormularioOverlay.remove()
+      }
+    }
+  })
 })
+
+
+// ============================================================================
+// 📝 RESUMEN DE FUNCIONALIDADES
+// ============================================================================
+
+/*
+RESUMEN DE FUNCIONES ORGANIZADAS:
+
+📋 CONFIGURACIÓN Y CONSTANTES:
+- API_URL: URL base del servidor
+
+📦 CARGA DE LIBRERÍAS:
+- loadXLSX(): Carga librería XLSX para exportar Excel
+
+🔐 AUTENTICACIÓN Y SEGURIDAD:
+- authenticatedFetch(): Peticiones HTTP autenticadas con token JWT
+- handleAuthError(): Maneja errores de autenticación y redirecciona
+- verifyTokenValidity(): Verifica validez del token actual
+- verificarAdmin(): Verifica permisos de administrador
+
+📊 VERIFICACIÓN DE ESTADOS DE REPORTES:
+- estaReporteCancelado(): Verifica si reporte está cancelado
+- estaReporteCompletado(): Verifica si reporte está completado
+- estaReportePendiente(): Verifica si reporte está pendiente
+
+🎭 MODALES Y UI GENERALES:
+- showModal()/hideModal(): Mostrar/ocultar modales por ID
+- disableBodyScroll()/enableBodyScroll(): Control de scroll del body
+
+🗑️ MODAL DE CANCELACIÓN:
+- crearModalCancelacion(): Crea modal para cancelar reportes con razón
+
+⚡ ACCIONES DE REPORTES (CRUD):
+- confirmarCancelacion(): Cancela un reporte con razón específica
+- cambiarEstadoPendiente(): Cambia estado de reporte a pendiente
+- eliminarReporte(): Elimina reporte permanentemente del sistema
+
+🎵 ACORDEONES (FAQ):
+- setupAccordion(): Configura event listeners para acordeones
+- handleAccordionClick(): Maneja clicks y animaciones de acordeones
+
+📋 DROPDOWNS DE ACCIONES:
+- aplicarRestriccionesPorEstado(): Aplica restricciones según estado del reporte
+- crearDropdownAcciones(): Crea menú dropdown con opciones contextuales
+
+🛠️ FUNCIONES UTILITARIAS:
+- formatearEncabezado(): Formatea texto de encabezados de tabla
+- debounce(): Función para retrasar ejecución (búsqueda en vivo)
+- mostrarError()/limpiarError(): Manejo y visualización de errores
+- actualizarEstadoBotonExportar(): Actualiza estado del botón según datos
+
+🔍 SISTEMA DE BÚSQUEDA AVANZADA:
+- parsearConsulta(): Parsea consultas con operadores (AND/OR)
+- barraDeBusqueda(): Ejecuta búsquedas y maneja resultados
+- inicializarBusqueda(): Restaura búsqueda guardada al cargar página
+
+📊 TABLA Y VISUALIZACIÓN DE DATOS:
+- aplicarEstilosCancelados(): Aplica estilos especiales a reportes cancelados
+- mostrarJSONEnTabla(): Convierte datos JSON a tabla HTML interactiva
+- cargarTabla(): Carga datos desde API y los muestra en tabla
+
+📤 EXPORTACIÓN DE DATOS:
+- exportData(): Exporta datos actuales a archivo Excel (.xlsx)
+- refrescarTabla(): Refresca datos de la tabla manteniendo filtros
+
+🧭 NAVEGACIÓN Y SIDEBAR:
+- initializeSections(): Inicializa navegación entre secciones del panel
+
+📋 MODAL DE FORMULARIO DETALLADO:
+- mostrarModalFormulario(): Muestra detalles completos del formulario de reporte
+
+🎯 INICIALIZACIÓN Y CONFIGURACIÓN:
+- Event listeners principales (botones, búsqueda, sidebar)
+- Configuración inicial del DOM y estado
+- Intervalos de actualización automática (3s y 30s)
+- Manejo de eventos de teclado (Enter, Escape)
+- Soporte responsive para dispositivos móviles
+- Persistencia de estado en localStorage
+
+CARACTERÍSTICAS PRINCIPALES:
+✅ Sistema de autenticación JWT con renovación automática
+✅ Búsqueda avanzada con sintaxis de operadores (cor=, cod=, id=, des=)
+✅ Gestión completa de reportes (CRUD) con estados dinámicos
+✅ Exportación a Excel con nombres de archivo timestamped
+✅ Interfaz completamente responsive (desktop/tablet/móvil)
+✅ Actualización automática de datos en tiempo real
+✅ Modales interactivos con posicionamiento inteligente
+✅ Sistema de navegación por secciones con acordeones
+✅ Manejo robusto de errores con mensajes contextuales
+✅ Persistencia de búsquedas y estado entre sesiones
+✅ Dropdowns contextuales con restricciones por estado
+✅ Integración de botón de ayuda con documentación completa
+
+PATRONES DE DISEÑO IMPLEMENTADOS:
+🔄 Debouncing para optimización de búsquedas
+🎯 Event delegation para elementos dinámicos
+🔒 Singleton pattern para gestión de modales
+📱 Mobile-first responsive design
+🔄 Auto-refresh con control inteligente de estado
+💾 LocalStorage para persistencia de datos
+🎨 CSS-in-JS para estilos dinámicos de modales
+*/
+// ============================================================================
+// 📋 CONFIGURACIÓN Y CONSTANTES GLOBALES
+// ============================================================================
+
+/**
+ * URL base de la API del servidor
+ */

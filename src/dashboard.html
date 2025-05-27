@@ -334,6 +334,85 @@
 
         </main>
     </div>
+    
+    <!-- Modal de ayuda actualizado con información detallada de búsqueda -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content help-modal">
+            <div class="modal-header">
+                <h3>Ayuda del Panel Administrativo</h3>
+                <span class="close-help-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <h4>Navegación del Panel</h4>
+                <p>Utiliza el menú lateral para navegar entre las diferentes secciones del panel administrativo. Puedes acceder a preguntas frecuentes, avisos de privacidad, términos y condiciones, información sobre ISAA y contacto.</p>
+                
+                <h4>Sistema de Búsqueda Avanzada</h4>
+                <p>La barra de búsqueda utiliza un sistema de códigos específicos para filtrar reportes:</p>
+                
+                <p><strong>Búsquedas Simples:</strong></p>
+                <ul>
+                    <li><strong>cor=</strong> - Buscar por correo electrónico<br>
+                        <em>Ejemplo: cor=juan@estudiante.udg.mx</em></li>
+                    <li><strong>cod=</strong> - Buscar por código de estudiante<br>
+                        <em>Ejemplo: cod=220123456</em></li>
+                    <li><strong>id=</strong> - Buscar por ID de reporte<br>
+                        <em>Ejemplo: id=15</em></li>
+                    <li><strong>des=</strong> - Buscar por descripción (búsqueda parcial)<br>
+                        <em>Ejemplo: des=acoso</em></li>
+                </ul>
+                
+                <p><strong>Búsquedas Múltiples (OR):</strong></p>
+                <p>Usa el símbolo <strong>|</strong> para buscar reportes que coincidan con cualquiera de los criterios:</p>
+                <ul>
+                    <li><em>cor=juan@udg.mx | cod=220123456</em></li>
+                    <li><em>id=15 | id=20 | id=25</em></li>
+                </ul>
+                
+                <p><strong>Búsquedas Combinadas (AND):</strong></p>
+                <p>Usa el símbolo <strong>&</strong> para buscar reportes que cumplan todos los criterios:</p>
+                <ul>
+                    <li><em>cor=juan@udg.mx & des=emergencia</em></li>
+                    <li><em>cod=220123456 & des=acoso</em></li>
+                </ul>
+                
+                <p><strong>Búsqueda de Texto Libre:</strong></p>
+                <p>Si escribes texto sin códigos, se buscará automáticamente en las descripciones:</p>
+                <ul>
+                    <li><em>emergencia</em> (busca "emergencia" en descripciones)</li>
+                    <li><em>acoso escolar</em> (busca "acoso escolar" en descripciones)</li>
+                </ul>
+                
+                <h4>Gestión de Reportes</h4>
+                <p>En el panel principal puedes gestionar todos los reportes recibidos:</p>
+                <ul>
+                    <li><strong>Formulario:</strong> Ver los detalles completos del formulario enviado por el usuario</li>
+                    <li><strong>Cancelar:</strong> Cancelar un reporte con una razón específica</li>
+                    <li><strong>Eliminar:</strong> Eliminar permanentemente un reporte del sistema</li>
+                </ul>
+                
+                <h4>Estados de Reportes</h4>
+                <p>Los reportes pueden tener diferentes estados:</p>
+                <ul>
+                    <li><strong>Activo:</strong> Reporte recién enviado, requiere atención</li>
+                    <li><strong>Pendiente:</strong> Reporte en proceso de revisión</li>
+                    <li><strong>Completado:</strong> Reporte procesado con formulario completo</li>
+                    <li><strong>Cancelado:</strong> Reporte cancelado por el administrador</li>
+                </ul>
+                
+                <h4>Exportación de Datos</h4>
+                <p>Usa el botón "Exportar" para descargar todos los reportes visibles en formato Excel para análisis o respaldo. Solo se exportarán los reportes que aparecen en la tabla actual.</p>
+                
+                <h4>¿Necesitas más ayuda?</h4>
+                <p>Si tienes dudas sobre el funcionamiento del sistema administrativo, consulta la sección "Preguntas Frecuentes" o contacta con soporte técnico a través de la sección "Contáctanos".</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="help-icon">
+            <a href="#" id="help-button"><i class="fas fa-question-circle"></i></a>
+        </div>
+    </footer>
 
     <script src="dashboard.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
