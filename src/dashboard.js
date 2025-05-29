@@ -1,12 +1,9 @@
 const API_URL = "http://localhost:8000"
 
-// ============================================================================
-// 📦 FUNCIONES DE CARGA DE LIBRERÍAS EXTERNAS
-// ============================================================================
+// FUNCIONES DE CARGA DE LIBRERÍAS EXTERNAS
 
 /**
  * Carga la librería XLSX para exportación de archivos Excel
- * @returns {Promise} Promise que resuelve cuando XLSX está disponible
  */
 function loadXLSX() {
   return new Promise((resolve, reject) => {
@@ -34,15 +31,11 @@ function loadXLSX() {
   })
 }
 
-// ============================================================================
-// 🔐 FUNCIONES DE AUTENTICACIÓN Y SEGURIDAD
-// ============================================================================
 
+
+// FUNCIONES DE AUTENTICACIÓN Y SEGURIDAD
 /**
  * Realiza peticiones HTTP autenticadas con token JWT
- * @param {string} url - URL de la petición
- * @param {Object} options - Opciones de la petición (headers, method, body, etc.)
- * @returns {Promise<Response|null>} Response de la petición o null si hay error de auth
  */
 async function authenticatedFetch(url, options = {}) {
   const token = localStorage.getItem("access_token")
@@ -97,7 +90,6 @@ function handleAuthError() {
 
 /**
  * Verifica si el token actual es válido
- * @returns {Promise<boolean>} true si el token es válido, false si no
  */
 async function verifyTokenValidity() {
   try {
@@ -111,7 +103,6 @@ async function verifyTokenValidity() {
 
 /**
  * Verifica que el usuario actual sea administrador
- * @returns {Promise<boolean>} true si es admin, false si no
  */
 async function verificarAdmin() {
   const token = localStorage.getItem("access_token")
@@ -144,14 +135,11 @@ async function verificarAdmin() {
   await verificarAdmin()
 })()
 
-// ============================================================================
-// 📊 FUNCIONES DE VERIFICACIÓN DE ESTADO DE REPORTES
-// ============================================================================
 
+
+// FUNCIONES DE VERIFICACIÓN DE ESTADO DE REPORTES
 /**
  * Verifica si un reporte está cancelado
- * @param {Object} reporte - Objeto del reporte
- * @returns {boolean} true si está cancelado, false si no
  */
 function estaReporteCancelado(reporte) {
   // Verificar por campo 'status'
@@ -185,8 +173,6 @@ function estaReporteCancelado(reporte) {
 
 /**
  * Verifica si un reporte está completado
- * @param {Object} reporte - Objeto del reporte
- * @returns {boolean} true si está completado, false si no
  */
 function estaReporteCompletado(reporte) {
   if (reporte.status && typeof reporte.status === "string") {
@@ -208,8 +194,6 @@ function estaReporteCompletado(reporte) {
 
 /**
  * Verifica si un reporte está pendiente
- * @param {Object} reporte - Objeto del reporte
- * @returns {boolean} true si está pendiente, false si no
  */
 function estaReportePendiente(reporte) {
   if (reporte.status && typeof reporte.status === "string") {
@@ -229,13 +213,10 @@ function estaReportePendiente(reporte) {
   return false
 }
 
-// ============================================================================
-// 🎭 FUNCIONES DE MODAL Y UI GENERALES
-// ============================================================================
+// FUNCIONES DE MODAL Y UI GENERALES
 
 /**
  * Muestra un modal por su ID
- * @param {string} modalId - ID del modal a mostrar
  */
 function showModal(modalId) {
   disableBodyScroll()
@@ -244,7 +225,6 @@ function showModal(modalId) {
 
 /**
  * Oculta un modal por su ID
- * @param {string} modalId - ID del modal a ocultar
  */
 function hideModal(modalId) {
   enableBodyScroll()
@@ -265,18 +245,15 @@ function enableBodyScroll() {
   document.body.classList.remove("modal-open")
 }
 
-// ============================================================================
-// 🎯 INICIALIZACIÓN PRINCIPAL Y EVENT LISTENERS
-// ============================================================================
+
+// INICIALIZACIÓN PRINCIPAL Y EVENT LISTENERS
 
 /**
  * Función principal que se ejecuta cuando el DOM está listo
  */
 document.addEventListener("DOMContentLoaded", async () => {
-  // ============================================================================
-  // CARGAR XLSX AL INICIO
-  // ============================================================================
 
+  // CARGAR XLSX AL INICIO
   try {
     await loadXLSX()
     console.log("XLSX está listo para usar")
@@ -284,9 +261,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Error cargando XLSX:", error)
   }
 
-  // ============================================================================
+
   // REFERENCIAS A ELEMENTOS DEL DOM
-  // ============================================================================
 
   const sidebar = document.querySelector(".sidebar")
   const sidebarToggle = document.getElementById("sidebar-toggle")
@@ -303,15 +279,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   overlay.classList.add("overlay")
   document.body.appendChild(overlay)
 
-  // ============================================================================
-  // CONFIGURACIÓN DEL BOTÓN DE AYUDA
-  // ============================================================================
+
+  // CONFIGURACIÓN DEL BOTÓN DE AYUDA DEL SISTEMA
 
   const helpButton = document.getElementById("help-button")
   const helpModal = document.getElementById("help-modal")
   const closeHelpModal = document.querySelector(".close-help-modal")
 
-  // Event listener para abrir el modal de ayuda
+  // Event listener para abrir el modal de ayuda del sistema
   if (helpButton) {
     helpButton.addEventListener("click", (e) => {
       e.preventDefault()
@@ -319,7 +294,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
   }
 
-  // Event listener para cerrar el modal de ayuda
+  // Event listener para cerrar el modal de ayuda del sistema
   if (closeHelpModal) {
     closeHelpModal.addEventListener("click", () => {
       hideModal("help-modal")
@@ -335,23 +310,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
   }
 
-  // ============================================================================
+
   // VARIABLES GLOBALES DE ESTADO
-  // ============================================================================
 
   let valores = ""
   let datosActuales = []
   let autoUpdate = true
   let hayTextoBusqueda = false
 
-  // ============================================================================
-  // 🗑️ FUNCIONES DE MODAL DE CANCELACIÓN DE REPORTES
-  // ============================================================================
+
+  // FUNCIONES DE MODAL DE CANCELACIÓN DE REPORTES
+
 
   /**
    * Crea y muestra el modal para cancelar un reporte
-   * @param {number} reporteId - ID del reporte a cancelar
-   * @param {HTMLElement} botonAccion - Elemento botón que activó el modal (para posicionamiento)
    */
   function crearModalCancelacion(reporteId, botonAccion) {
     // Remover modal existente si lo hay
@@ -420,13 +392,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 100)
   }
 
-  // ============================================================================
-  // ⚡ FUNCIONES DE ACCIONES DE REPORTES (CRUD)
-  // ============================================================================
 
+  // FUNCIONES DE ACCIONES DE REPORTES
   /**
    * Confirma y ejecuta la cancelación de un reporte
-   * @param {number} reporteId - ID del reporte a cancelar
    */
   async function confirmarCancelacion(reporteId) {
     const razonUsuario = document.getElementById("razon-cancelacion").value.trim()
@@ -482,7 +451,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /**
    * Cambia el estado de un reporte a "Pendiente"
-   * @param {number} reporteId - ID del reporte
    */
   async function cambiarEstadoPendiente(reporteId) {
     autoUpdate = false
@@ -518,7 +486,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /**
    * Elimina un reporte permanentemente
-   * @param {number} id - ID del reporte a eliminar
    */
   async function eliminarReporte(id) {
     if (!confirm(`¿Deseas eliminar el reporte con ID ${id}?`)) {
@@ -551,15 +518,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ============================================================================
-  // 🎵 FUNCIONES DE ACORDEÓN (PREGUNTAS FRECUENTES)
-  // ============================================================================
-
+  // FUNCIONES DE ACORDEÓN (PREGUNTAS FRECUENTES)
   /**
    * Configura los event listeners para todos los acordeones
    */
   function setupAccordion() {
-    console.log("Configurando acordeones...")
 
     document.querySelectorAll(".accordion-header").forEach((header) => {
       header.removeEventListener("click", handleAccordionClick)
@@ -571,7 +534,6 @@ document.addEventListener("DOMContentLoaded", async () => {
    * Maneja el click en un header de acordeón
    */
   function handleAccordionClick() {
-    console.log("Acordeón clickeado")
 
     this.classList.toggle("active")
 
@@ -586,14 +548,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ============================================================================
-  // 📋 FUNCIONES DE DROPDOWN Y RESTRICCIONES DE ACCIONES
-  // ============================================================================
+  // FUNCIONES DE DROPDOWN Y RESTRICCIONES DE ACCIONES
 
   /**
    * Aplica restricciones a las opciones del dropdown según el estado del reporte
-   * @param {number} reporteId - ID del reporte
-   * @param {HTMLElement} dropdownMenu - Elemento del menú dropdown
    */
   function aplicarRestriccionesPorEstado(reporteId, dropdownMenu) {
     setTimeout(() => {
@@ -647,8 +605,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /**
    * Crea el dropdown de acciones para un reporte
-   * @param {number} reporteId - ID del reporte
-   * @returns {HTMLElement} Elemento del dropdown creado
    */
   function crearDropdownAcciones(reporteId) {
     const dropdownContainer = document.createElement("div")
@@ -779,31 +735,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     return dropdownContainer
   }
 
-  // ============================================================================
-  // 🛠️ FUNCIONES DE UTILIDAD Y HELPERS
-  // ============================================================================
+  // FUNCIONES DE UTILIDAD Y HELPERS
 
   /**
    * Formatea el texto de los encabezados de tabla
-   * @param {string} texto - Texto a formatear
-   * @returns {string} Texto formateado
    */
   function formatearEncabezado(texto) {
     if (texto === "id") {
       return "ID"
     }
+
+    if (texto === "codigo_estudiante"){
+     return "Código Estudiante"
+    }
+
+    if (texto === "correo_estudiante"){
+     return "Correo Estudiante"
+    }
+
+    if (texto === "descripcion"){
+     return "Descripción"
+    }
+
+    if (texto === "estado"){
+     return "Estado"
+    }
+
+    if (texto === "fecha"){
+     return "Fecha"
+    }
+
+    if (texto === "hora"){
+     return "Hora"
+    }
+
+    if (texto === "razon"){
+     return "Razón"
+    }
+
     return texto
-      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (l) => l.toUpperCase())
   }
 
   /**
    * Crea una función debounced que retrasa la ejecución
-   * @param {Function} func - Función a ejecutar
-   * @param {number} delay - Retraso en milisegundos
-   * @returns {Function} Función debounced
    */
   function debounce(func, delay) {
     let timeoutId
@@ -815,7 +789,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /**
    * Muestra un mensaje de error en la interfaz
-   * @param {string} mensaje - Mensaje de error a mostrar
    */
   function mostrarError(mensaje) {
     console.error("Mostrando error:", mensaje)
@@ -846,15 +819,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ============================================================================
-  // 🔍 FUNCIONES DE BÚSQUEDA Y PARSEO DE CONSULTAS
-  // ============================================================================
 
-  /**
-   * Parsea una consulta de búsqueda y la convierte en parámetros de URL
-   * @param {string} consulta - Consulta de búsqueda del usuario
-   * @returns {string} Parámetros de URL parseados
-   */
+  // FUNCIONES DE BÚSQUEDA Y PARSEO DE CONSULTAS
+
   function parsearConsulta(consulta) {
     console.log("Parseando consulta:", consulta)
 
@@ -999,16 +966,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ============================================================================
-  // 📊 FUNCIONES DE TABLA Y VISUALIZACIÓN DE DATOS
-  // ============================================================================
 
-  /**
-   * Aplica estilos especiales a celdas de reportes cancelados
-   * @param {HTMLElement} celda - Elemento de la celda
-   * @param {string} valor - Valor de la celda
-   * @param {string} campo - Nombre del campo
-   */
+  // FUNCIONES DE TABLA Y VISUALIZACIÓN DE DATOS
+
+
   function aplicarEstilosCancelados(celda, valor, campo) {
     if (campo === "nivel" || campo === "level" || campo === "priority") {
       if (
@@ -1027,9 +988,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  /**
+  /*
    * Muestra los datos JSON en formato de tabla HTML
-   * @param {Array|Object} jsonData - Datos a mostrar en la tabla
    */
   function mostrarJSONEnTabla(jsonData) {
     console.log("Mostrando datos en tabla:", jsonData)
@@ -1226,9 +1186,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ============================================================================
-  // 📤 FUNCIONES DE EXPORTACIÓN DE DATOS
-  // ============================================================================
+
+  // FUNCIONES DE EXPORTACIÓN DE DATOS
 
   /**
    * Exporta los datos actuales a un archivo Excel
@@ -1302,9 +1261,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ============================================================================
-  // 🧭 FUNCIONES DE SIDEBAR Y NAVEGACIÓN
-  // ============================================================================
+  // FUNCIONES DE SIDEBAR Y NAVEGACIÓN
 
   /**
    * Inicializa la navegación entre secciones del sidebar
@@ -1374,9 +1331,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
   }
 
-  // ============================================================================
-  // 📋 MODAL DE FORMULARIO COMPLETADO
-  // ============================================================================
+
+  // MODAL DE FORMULARIO COMPLETADO
 
   /**
    * Muestra el modal con los detalles del formulario de un reporte
@@ -1480,9 +1436,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ============================================================================
+
   // CONFIGURACIÓN INICIAL
-  // ============================================================================
 
   actualizarEstadoBotonExportar()
   initializeSections()
@@ -1495,9 +1450,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Inicializar búsqueda después de un breve delay
   setTimeout(inicializarBusqueda, 100)
 
-  // ============================================================================
+
   // EVENT LISTENERS PRINCIPALES
-  // ============================================================================
 
   /**
    * Logout - Cerrar sesión
@@ -1699,9 +1653,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   })
 
-  // ============================================================================
+
   // MANEJO ESPECÍFICO PARA DISPOSITIVOS MÓVILES
-  // ============================================================================
 
   if (window.innerWidth <= 576) {
     /**
@@ -1743,9 +1696,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
   }
 
-  // ============================================================================
+
   // INTERVALOS Y ACTUALIZACIONES AUTOMÁTICAS
-  // ============================================================================
 
   /**
    * Verificación periódica del token y actualización automática (cada 30 segundos)
@@ -1771,18 +1723,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }, 3000)
 
-  // ============================================================================
-  // CONFIGURACIÓN DEL FORMULARIO DE CONTACTO
-  // ============================================================================
 
-  /**
-      cargarTabla(valores)
-    }
-  }, 3000)
-
-  // ============================================================================
   // CONFIGURACIÓN DEL FORMULARIO DE CONTACTO
-  // ============================================================================
 
   /**
    * Manejo del envío del formulario de contacto
@@ -1802,10 +1744,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
   }
 
-  // ============================================================================
-  // MANEJO DE EVENTOS DE TECLADO GLOBALES
-  // ============================================================================
 
+  // MANEJO DE EVENTOS DE TECLADO GLOBALES
   /**
    * Cerrar modales con la tecla Escape
    */
@@ -1831,112 +1771,77 @@ document.addEventListener("DOMContentLoaded", async () => {
   })
 })
 
-
-// ============================================================================
-// 📝 RESUMEN DE FUNCIONALIDADES
-// ============================================================================
-
 /*
 RESUMEN DE FUNCIONES ORGANIZADAS:
 
-📋 CONFIGURACIÓN Y CONSTANTES:
+CONFIGURACIÓN Y CONSTANTES:
 - API_URL: URL base del servidor
 
-📦 CARGA DE LIBRERÍAS:
+CARGA DE LIBRERÍAS:
 - loadXLSX(): Carga librería XLSX para exportar Excel
 
-🔐 AUTENTICACIÓN Y SEGURIDAD:
+AUTENTICACIÓN Y SEGURIDAD:
 - authenticatedFetch(): Peticiones HTTP autenticadas con token JWT
 - handleAuthError(): Maneja errores de autenticación y redirecciona
 - verifyTokenValidity(): Verifica validez del token actual
 - verificarAdmin(): Verifica permisos de administrador
 
-📊 VERIFICACIÓN DE ESTADOS DE REPORTES:
+VERIFICACIÓN DE ESTADOS DE REPORTES:
 - estaReporteCancelado(): Verifica si reporte está cancelado
 - estaReporteCompletado(): Verifica si reporte está completado
 - estaReportePendiente(): Verifica si reporte está pendiente
 
-🎭 MODALES Y UI GENERALES:
+MODALES Y UI GENERALES:
 - showModal()/hideModal(): Mostrar/ocultar modales por ID
 - disableBodyScroll()/enableBodyScroll(): Control de scroll del body
 
-🗑️ MODAL DE CANCELACIÓN:
+MODAL DE CANCELACIÓN:
 - crearModalCancelacion(): Crea modal para cancelar reportes con razón
 
-⚡ ACCIONES DE REPORTES (CRUD):
+ACCIONES DE REPORTES (CRUD):
 - confirmarCancelacion(): Cancela un reporte con razón específica
 - cambiarEstadoPendiente(): Cambia estado de reporte a pendiente
 - eliminarReporte(): Elimina reporte permanentemente del sistema
 
-🎵 ACORDEONES (FAQ):
+ACORDEONES (FAQ):
 - setupAccordion(): Configura event listeners para acordeones
 - handleAccordionClick(): Maneja clicks y animaciones de acordeones
 
-📋 DROPDOWNS DE ACCIONES:
+DROPDOWNS DE ACCIONES:
 - aplicarRestriccionesPorEstado(): Aplica restricciones según estado del reporte
 - crearDropdownAcciones(): Crea menú dropdown con opciones contextuales
 
-🛠️ FUNCIONES UTILITARIAS:
+FUNCIONES UTILITARIAS:
 - formatearEncabezado(): Formatea texto de encabezados de tabla
 - debounce(): Función para retrasar ejecución (búsqueda en vivo)
 - mostrarError()/limpiarError(): Manejo y visualización de errores
 - actualizarEstadoBotonExportar(): Actualiza estado del botón según datos
 
-🔍 SISTEMA DE BÚSQUEDA AVANZADA:
+SISTEMA DE BÚSQUEDA AVANZADA:
 - parsearConsulta(): Parsea consultas con operadores (AND/OR)
 - barraDeBusqueda(): Ejecuta búsquedas y maneja resultados
 - inicializarBusqueda(): Restaura búsqueda guardada al cargar página
 
-📊 TABLA Y VISUALIZACIÓN DE DATOS:
+TABLA Y VISUALIZACIÓN DE DATOS:
 - aplicarEstilosCancelados(): Aplica estilos especiales a reportes cancelados
 - mostrarJSONEnTabla(): Convierte datos JSON a tabla HTML interactiva
 - cargarTabla(): Carga datos desde API y los muestra en tabla
 
-📤 EXPORTACIÓN DE DATOS:
+EXPORTACIÓN DE DATOS:
 - exportData(): Exporta datos actuales a archivo Excel (.xlsx)
 - refrescarTabla(): Refresca datos de la tabla manteniendo filtros
 
-🧭 NAVEGACIÓN Y SIDEBAR:
+NAVEGACIÓN Y SIDEBAR:
 - initializeSections(): Inicializa navegación entre secciones del panel
 
-📋 MODAL DE FORMULARIO DETALLADO:
+MODAL DE FORMULARIO DETALLADO:
 - mostrarModalFormulario(): Muestra detalles completos del formulario de reporte
 
-🎯 INICIALIZACIÓN Y CONFIGURACIÓN:
+INICIALIZACIÓN Y CONFIGURACIÓN:
 - Event listeners principales (botones, búsqueda, sidebar)
 - Configuración inicial del DOM y estado
 - Intervalos de actualización automática (3s y 30s)
 - Manejo de eventos de teclado (Enter, Escape)
 - Soporte responsive para dispositivos móviles
 - Persistencia de estado en localStorage
-
-CARACTERÍSTICAS PRINCIPALES:
-✅ Sistema de autenticación JWT con renovación automática
-✅ Búsqueda avanzada con sintaxis de operadores (cor=, cod=, id=, des=)
-✅ Gestión completa de reportes (CRUD) con estados dinámicos
-✅ Exportación a Excel con nombres de archivo timestamped
-✅ Interfaz completamente responsive (desktop/tablet/móvil)
-✅ Actualización automática de datos en tiempo real
-✅ Modales interactivos con posicionamiento inteligente
-✅ Sistema de navegación por secciones con acordeones
-✅ Manejo robusto de errores con mensajes contextuales
-✅ Persistencia de búsquedas y estado entre sesiones
-✅ Dropdowns contextuales con restricciones por estado
-✅ Integración de botón de ayuda con documentación completa
-
-PATRONES DE DISEÑO IMPLEMENTADOS:
-🔄 Debouncing para optimización de búsquedas
-🎯 Event delegation para elementos dinámicos
-🔒 Singleton pattern para gestión de modales
-📱 Mobile-first responsive design
-🔄 Auto-refresh con control inteligente de estado
-💾 LocalStorage para persistencia de datos
-🎨 CSS-in-JS para estilos dinámicos de modales
-*/
-// ============================================================================
-// 📋 CONFIGURACIÓN Y CONSTANTES GLOBALES
-// ============================================================================
-
-/**
- * URL base de la API del servidor
  */
